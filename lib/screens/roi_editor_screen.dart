@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../providers/roi_config_provider.dart';
+import '../providers/settings_provider.dart';
+import '../services/remote_guard_api_service.dart';
 import '../widgets/roi_editor_canvas.dart';
 import '../widgets/zone_list_panel.dart';
 
@@ -120,6 +122,11 @@ class RoiEditorScreen extends StatelessWidget {
             onPressed: () => _openFile(context, provider),
           ),
           IconButton(
+            icon: const Icon(Icons.cloud_download_outlined, size: 20),
+            tooltip: 'Load ROI From Device',
+            onPressed: () => _loadFromDevice(context, provider),
+          ),
+          IconButton(
             icon: const Icon(Icons.save, size: 20),
             tooltip: 'Save',
             onPressed: provider.isDirty
@@ -130,6 +137,11 @@ class RoiEditorScreen extends StatelessWidget {
             icon: const Icon(Icons.save_as, size: 20),
             tooltip: 'Save As',
             onPressed: () => _saveAsFile(context, provider),
+          ),
+          IconButton(
+            icon: const Icon(Icons.cloud_upload_outlined, size: 20),
+            tooltip: 'Push ROI To Device',
+            onPressed: () => _pushToDevice(context, provider),
           ),
         ],
       ),
@@ -212,6 +224,56 @@ class RoiEditorScreen extends StatelessWidget {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Saved: $result'), duration: const Duration(seconds: 2)),
+        );
+      }
+    }
+  }
+
+  Future<void> _loadFromDevice(
+    BuildContext context,
+    RoiConfigProvider provider,
+  ) async {
+    final settings = context.read<SettingsProvider>().settings;
+    final api = RemoteGuardApiService();
+
+    try {
+      final config = await api.fetchRoi(settings);
+      provider.loadFromConfig(
+        config,
+        sourceLabel: settings.buildApiUri('roi').toString(),
+      );
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('ROI loaded from device')),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to load ROI: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _pushToDevice(
+    BuildContext context,
+    RoiConfigProvider provider,
+  ) async {
+    final settings = context.read<SettingsProvider>().settings;
+    final api = RemoteGuardApiService();
+
+    try {
+      await api.pushRoi(settings, provider.config);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('ROI pushed to device')),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to push ROI: $e')),
         );
       }
     }

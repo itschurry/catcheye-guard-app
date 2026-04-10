@@ -1,35 +1,38 @@
 # CatchEye Guard App
 
-`catcheye-guard` 실행 파일을 제어하고, ROI JSON을 편집하고, 실시간 프리뷰 스트림과 로그를 확인하기 위한 Flutter 데스크톱 앱입니다.
+원격 라즈베리파이5에서 실행 중인 `catcheye-guard` 검출기를 제어하고, ROI JSON을 편집하고, 실시간 프리뷰 스트림을 확인하기 위한 Flutter 데스크톱 앱입니다.
 
-현재 코드는 Linux 데스크톱 환경을 기준으로 작성되어 있으며, 외부 `catcheye-guard` 바이너리와 함께 사용하는 운영 도구 성격의 프로젝트입니다.
+현재 코드는 Linux 데스크톱 환경을 기준으로 작성되어 있으며, 검출 앱은 별도 라즈베리파이에서 HTTP 스트림과 제어 API를 제공한다고 가정합니다.
 
 ## 주요 기능
 
 - `Dashboard`
-  - `catcheye-guard` 프로세스 시작/중지
-  - 프로세스 상태, ROI 파일, 활성 존 수, 최근 로그 확인
+  - 원격 `catcheye-guard` 시작/중지
+  - 원격 상태, 연결 대상, 스트림 URL, 최근 동작 로그 확인
 - `Viewer`
-  - Unix domain socket으로 전달되는 JPEG 프레임 스트림 표시
+  - 원격 HTTP 스트림에서 JPEG 프레임 표시
   - 연결 상태, FPS, 누적 프레임 수 확인
 - `ROI Editor`
   - ROI JSON 파일 열기/새로 만들기/저장/다른 이름으로 저장
+  - 원격 장치에서 ROI 다운로드/업로드
   - 존 추가/삭제/이름 변경/활성화 토글
   - 포인트 드래그 편집 및 포인트 추가
   - 이미지 크기 기준 유효성 검사
 - `Settings`
-  - 실행 파일, 모델 파일, 메타데이터, ROI 파일 경로 설정
+  - 원격 장치 URL, 스트림 경로, API 경로 설정
+  - 원격 검출기 설정 불러오기/적용
+  - 모델 파일, 메타데이터, ROI 파일 경로 설정
   - 현재 로드된 ROI 구성 요약 확인
 - `Logs`
   - 특정 `.log` 파일 또는 디렉터리의 최신 로그 파일 tail 확인
 
 ## 화면 구성
 
-- `Dashboard`: 전체 상태 요약과 프로세스 제어
+- `Dashboard`: 전체 상태 요약과 원격 검출기 제어
 - `Viewer`: 프리뷰 스트림 연결 및 실시간 표시
-- `ROI Editor`: ROI 폴리곤 편집
-- `Settings`: 외부 파일 경로 설정
-- `Logs`: 로그 파일 모니터링
+- `ROI Editor`: ROI 폴리곤 편집과 원격 ROI 동기화
+- `Settings`: 원격 장치 연결과 검출기 설정
+- `Logs`: 로컬 로그 파일 모니터링
 
 ## 기술 스택
 
@@ -46,7 +49,7 @@ lib/
   models/                      설정/ROI 데이터 모델
   providers/                   상태 관리
   screens/                     각 화면 UI
-  services/                    프로세스 실행, 프레임 수신, ROI 파일 입출력
+  services/                    원격 제어, 프레임 수신, ROI 파일 입출력
   widgets/                     ROI 캔버스, 뷰어, 존 편집 패널
 linux/                         Linux 데스크톱 러너
 test/                          위젯 테스트
@@ -58,8 +61,9 @@ test/                          위젯 테스트
 
 - Flutter SDK 설치
 - Linux 데스크톱 타깃 사용 가능 환경
-- 외부 실행 파일 `catcheye-guard`
-- 필요 시 모델/메타데이터/ROI 설정 파일
+- 원격 라즈베리파이5에서 실행 중인 `catcheye-guard`
+- 원격 장치에서 HTTP 스트림과 제어 API 제공
+- 필요 시 원격 장치 기준 모델/메타데이터/ROI 설정 파일
   - `.param`
   - `.bin`
   - `.yaml` 또는 `.yml`
@@ -89,42 +93,59 @@ flutter test
 
 ## 기본 사용 흐름
 
-1. `Settings`에서 `catcheye-guard` 실행 파일 경로를 지정합니다.
-2. 필요하면 모델 `.param`, `.bin`, 메타데이터 `.yaml`, ROI `.json` 경로를 입력합니다.
-3. `ROI Editor`에서 ROI 파일을 열거나 새로 만들어 수정하고 저장합니다.
-4. `Dashboard`에서 `Start`를 눌러 외부 프로세스를 실행합니다.
-5. 프리뷰가 필요한 경우 `Viewer`에서 소켓에 연결합니다.
-6. 실행 로그는 `Dashboard` 또는 `Logs` 화면에서 확인합니다.
+1. `Settings`에서 검출용 라즈베리파이의 Base URL, Stream Path, API Base Path를 지정합니다.
+2. 필요하면 원격 장치 기준 모델 `.param`, `.bin`, 메타데이터 `.yaml`, ROI `.json` 경로를 입력합니다.
+3. `Load From Device`로 현재 원격 설정을 불러오거나, 값을 수정한 뒤 `Apply To Device`로 반영합니다.
+4. `ROI Editor`에서 로컬 ROI 파일을 편집하거나 `Load ROI From Device`로 원격 ROI를 불러옵니다.
+5. `Push ROI To Device`로 편집한 ROI를 원격 장치에 올립니다.
+6. `Dashboard`에서 `Start`/`Stop`으로 원격 검출기를 제어합니다.
+7. `Viewer`에서 원격 HTTP 스트림에 연결합니다.
 
-## 외부 프로세스 연동 방식
+## 원격 제어 API
 
-앱은 `Dashboard`의 `Start` 버튼을 누르면 설정값으로 외부 바이너리를 실행합니다.
+앱은 원격 장치의 Base URL과 API Base Path를 조합해서 아래 엔드포인트를 호출합니다.
 
-현재 코드 기준 실행 인자는 다음 순서의 위치 인자로 전달됩니다.
+- `GET /api/status`
+  - 예시: `{"status":"running","message":"detector active"}`
+- `POST /api/start`
+- `POST /api/stop`
+- `GET /api/settings`
+  - 검출기 설정 JSON 반환
+- `PUT /api/settings`
+  - 검출기 설정 JSON 반영
+- `GET /api/roi`
+  - ROI JSON 반환
+- `PUT /api/roi`
+  - ROI JSON 반영
 
-1. 모델 파라미터 파일 경로
-2. 모델 바이너리 파일 경로
-3. 메타데이터 파일 경로
-4. ROI JSON 파일 경로
-5. `--stream`
+`status` 값은 `running`, `starting`, `stopping`, `stopped` 중 하나를 기대합니다.
 
-즉, 외부 `catcheye-guard` 실행 파일은 위 형식의 인자를 받을 수 있어야 하며, `--stream` 사용 시 프리뷰 프레임을 Unix 소켓으로 송신해야 합니다.
+원격 설정 JSON은 아래 필드를 기대합니다.
+
+```json
+{
+  "camera_pipeline": "libcamerasrc ! ...",
+  "model_param_path": "/home/pi/models/model.param",
+  "model_bin_path": "/home/pi/models/model.bin",
+  "metadata_path": "/home/pi/models/metadata.yaml",
+  "roi_config_path": "/home/pi/models/roi.json",
+  "roi_enabled": true,
+  "roi_auto_reload": true,
+  "render_preview": true,
+  "filter_by_class": true,
+  "filter_class_id": 0
+}
+```
 
 ## 프리뷰 스트림 프로토콜
 
-`Viewer`는 기본적으로 아래 소켓 경로에 연결하도록 되어 있습니다.
+`Viewer`는 기본적으로 아래 URL로 연결합니다.
 
 ```text
-/tmp/catcheye_guard_preview.sock
+http://127.0.0.1:8080/
 ```
 
-수신 프로토콜은 다음과 같습니다.
-
-```text
-[4-byte little-endian uint32 frame_size][JPEG bytes]
-```
-
-프레임은 JPEG 바이트 배열이어야 하며, 각 프레임 앞에 4바이트 길이 헤더가 붙습니다.
+실제 운영에서는 `Settings`의 `Detector Base URL`과 `Stream Path`를 조합한 URL을 사용합니다. 앱은 HTTP 응답 바디에서 JPEG 시작/종료 마커를 찾아 프레임을 추출하므로, 일반적인 MJPEG 스트림(`multipart/x-mixed-replace`)이나 연속 JPEG 바이트 스트림을 받을 수 있습니다.
 
 ## ROI JSON 형식
 
@@ -160,13 +181,12 @@ ROI 편집기는 아래 구조의 JSON을 사용합니다.
 ## 현재 구현 기준 참고 사항
 
 - 설정값은 메모리에만 유지되며 앱 재시작 후 자동 복원되지 않습니다.
-- `Settings`의 일부 항목(`cameraPipeline`, `roiEnabled` 등)은 UI에는 있으나 현재 실행 인자에 반영되지 않습니다.
-- ROI 기본 자동 로드는 특정 고정 경로를 후보로 검사하는 형태로 구현되어 있습니다.
+- 로컬 `.json` ROI 파일 편집과 원격 ROI 업로드/다운로드를 함께 지원합니다.
+- ROI 기본 자동 로드는 특정 고정 경로를 후보로 검사하는 형태로 유지되어 있습니다.
 - 플랫폼 코드는 현재 `linux/`만 포함되어 있어 사실상 Linux 데스크톱 사용이 전제됩니다.
 
 ## 개발 메모
 
 - 상태 관리는 `provider` 기반입니다.
-- 프로세스 실행 로그는 앱 내부에서 별도로 수집해 `Dashboard`에 표시합니다.
+- 원격 제어 요청 로그는 앱 내부에서 별도로 수집해 `Dashboard`에 표시합니다.
 - `Logs` 화면은 파일 시스템을 1초 주기로 폴링합니다.
-

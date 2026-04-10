@@ -5,19 +5,19 @@ import '../providers/roi_config_provider.dart';
 import '../providers/settings_provider.dart';
 import '../services/process_manager_service.dart';
 
-/// Dashboard screen — system status summary, process management, ROI summary
+/// Dashboard screen — remote detector status, control, ROI summary
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Consumer2<ProcessManagerService, RoiConfigProvider>(
-      builder: (context, processManager, roiProvider, _) {
+    return Consumer3<ProcessManagerService, RoiConfigProvider, SettingsProvider>(
+      builder: (context, processManager, roiProvider, settingsProvider, _) {
+        final settings = settingsProvider.settings;
         return Padding(
           padding: const EdgeInsets.all(24),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          child: ListView(
             children: [
               // Title
               Row(
@@ -40,9 +40,15 @@ class DashboardScreen extends StatelessWidget {
                 children: [
                   _StatusCard(
                     icon: Icons.play_circle_outline,
-                    title: 'Process Status',
+                    title: 'Detector Status',
                     value: _statusText(processManager.status),
                     color: _statusColor(processManager.status),
+                  ),
+                  _StatusCard(
+                    icon: Icons.router_outlined,
+                    title: 'Device',
+                    value: settings.detectorBaseUrl,
+                    color: Colors.cyan,
                   ),
                   _StatusCard(
                     icon: Icons.camera_alt_outlined,
@@ -73,18 +79,16 @@ class DashboardScreen extends StatelessWidget {
                     color: Colors.green,
                   ),
                   _StatusCard(
-                    icon: Icons.description_outlined,
-                    title: 'ROI File',
-                    value: roiProvider.filePath != null
-                        ? roiProvider.filePath!.split('/').last
-                        : 'None',
+                    icon: Icons.live_tv_outlined,
+                    title: 'Stream',
+                    value: settings.streamUri.toString(),
                     color: Colors.purple,
                   ),
                 ],
               ),
               const SizedBox(height: 24),
 
-              // Process Control
+              // Device Control
               Card(
                 child: Padding(
                   padding: const EdgeInsets.all(16),
@@ -92,27 +96,56 @@ class DashboardScreen extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const Text(
-                        'Process Control',
+                        'Detector Control',
                         style: TextStyle(
                             fontSize: 16, fontWeight: FontWeight.bold),
                       ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'API: ${settings.buildApiUri('status')}',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey,
+                          fontFamily: 'monospace',
+                        ),
+                      ),
+                      if (processManager.statusMessage != null) ...[
+                        const SizedBox(height: 8),
+                        Text(
+                          processManager.statusMessage!,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: processManager.status == GuardProcessStatus.error
+                                ? Colors.red.shade300
+                                : Colors.grey.shade300,
+                          ),
+                        ),
+                      ],
                       const SizedBox(height: 12),
                       Row(
                         children: [
                           FilledButton.icon(
                             icon: const Icon(Icons.play_arrow),
                             label: const Text('Start'),
-                            onPressed: processManager.isRunning
+                            onPressed: processManager.isRunning || processManager.busy
                                 ? null
-                                : () => _startProcess(context),
+                                : () => processManager.start(settings),
                           ),
                           const SizedBox(width: 8),
                           OutlinedButton.icon(
                             icon: const Icon(Icons.stop),
                             label: const Text('Stop'),
                             onPressed: processManager.isRunning
-                                ? () => processManager.stop()
+                                ? () => processManager.stop(settings)
                                 : null,
+                          ),
+                          const SizedBox(width: 8),
+                          OutlinedButton.icon(
+                            icon: const Icon(Icons.refresh),
+                            label: const Text('Refresh Status'),
+                            onPressed: processManager.busy
+                                ? null
+                                : () => processManager.refreshStatus(settings),
                           ),
                         ],
                       ),
@@ -160,7 +193,8 @@ class DashboardScreen extends StatelessWidget {
 
               // Recent Logs
               const SizedBox(height: 16),
-              Expanded(
+              SizedBox(
+                height: 320,
                 child: Card(
                   child: Padding(
                     padding: const EdgeInsets.all(16),
@@ -224,26 +258,6 @@ class DashboardScreen extends StatelessWidget {
         );
       },
     );
-  }
-
-  void _startProcess(BuildContext context) {
-    final settings = context.read<SettingsProvider>().settings;
-    final processManager = context.read<ProcessManagerService>();
-
-    if (settings.guardExecutablePath.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Set the executable path in Settings before starting.'),
-          duration: Duration(seconds: 3),
-        ),
-      );
-      return;
-    }
-
-    final args = settings.buildCommandArgs();
-    // Add --stream flag so Flutter viewer can receive frames
-    args.add('--stream');
-    processManager.start(settings.guardExecutablePath, args);
   }
 
   String _statusText(GuardProcessStatus status) {

@@ -36,17 +36,22 @@ class RoiConfigProvider extends ChangeNotifier {
 
   Future<void> loadFromFile(String path) async {
     try {
-      _config = await RoiConfigService.loadFromFile(path);
-      _filePath = path;
-      _isDirty = false;
-      _errorMessage = null;
-      _selectedZoneIndex = _config.allowedZones.isNotEmpty ? 0 : -1;
-      _validate();
-      notifyListeners();
+      final config = await RoiConfigService.loadFromFile(path);
+      loadFromConfig(config, sourceLabel: path);
     } catch (e) {
       _errorMessage = 'Load failed: $e';
       notifyListeners();
     }
+  }
+
+  void loadFromConfig(CameraRoiConfig config, {String? sourceLabel}) {
+    _config = config;
+    _filePath = sourceLabel;
+    _isDirty = false;
+    _errorMessage = null;
+    _selectedZoneIndex = _config.allowedZones.isNotEmpty ? 0 : -1;
+    _validate();
+    notifyListeners();
   }
 
   Future<void> saveToFile([String? path]) async {

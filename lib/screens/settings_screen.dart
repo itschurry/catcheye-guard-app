@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../providers/roi_config_provider.dart';
 import '../providers/settings_provider.dart';
+import '../services/process_manager_service.dart';
 
 /// Settings screen
 
@@ -12,8 +13,8 @@ class SettingsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer2<SettingsProvider, RoiConfigProvider>(
-      builder: (context, settingsProvider, roiProvider, _) {
+    return Consumer3<SettingsProvider, RoiConfigProvider, ProcessManagerService>(
+      builder: (context, settingsProvider, roiProvider, processManager, _) {
         final settings = settingsProvider.settings;
 
         return SingleChildScrollView(
@@ -27,45 +28,46 @@ class SettingsScreen extends StatelessWidget {
               ),
               const SizedBox(height: 24),
 
-              // Executable path
               _SectionCard(
-                title: 'Executable',
-                icon: Icons.terminal,
+                title: 'Device Connection',
+                icon: Icons.router,
                 children: [
-                  _PathField(
-                    label: 'catcheye-guard executable path',
-                    value: settings.guardExecutablePath,
-                    onChanged: settingsProvider.updateGuardPath,
-                    onBrowse: () => _browseFile(
-                      context,
-                      'Select Executable',
-                      settingsProvider.updateGuardPath,
-                    ),
+                  _TextField(
+                    label: 'Detector Base URL',
+                    value: settings.detectorBaseUrl,
+                    onChanged: settingsProvider.updateDetectorBaseUrl,
                   ),
+                  const SizedBox(height: 12),
+                  _TextField(
+                    label: 'Stream Path',
+                    value: settings.streamPath,
+                    onChanged: settingsProvider.updateStreamPath,
+                  ),
+                  const SizedBox(height: 12),
+                  _TextField(
+                    label: 'API Base Path',
+                    value: settings.apiBasePath,
+                    onChanged: settingsProvider.updateApiBasePath,
+                  ),
+                  const SizedBox(height: 12),
+                  _InfoRow('Resolved Stream URL', settings.streamUri.toString()),
+                  _InfoRow('Settings API', settings.buildApiUri('settings').toString()),
+                  _InfoRow('ROI API', settings.buildApiUri('roi').toString()),
                 ],
               ),
               const SizedBox(height: 16),
 
-              // Camera settings
               _SectionCard(
-                title: 'Camera',
-                icon: Icons.videocam,
+                title: 'Detector',
+                icon: Icons.model_training,
                 children: [
                   _TextField(
-                    label: 'GStreamer Pipeline',
+                    label: 'Camera Pipeline',
                     value: settings.cameraPipeline,
                     onChanged: settingsProvider.updateCameraPipeline,
                     maxLines: 3,
                   ),
-                ],
-              ),
-              const SizedBox(height: 16),
-
-              // Detector settings
-              _SectionCard(
-                title: 'Detector (YOLO26n + NCNN)',
-                icon: Icons.model_training,
-                children: [
+                  const SizedBox(height: 12),
                   _PathField(
                     label: 'Model Parameter File (.param)',
                     value: settings.modelParamPath,
@@ -101,21 +103,11 @@ class SettingsScreen extends StatelessWidget {
                       extensions: ['yaml', 'yml'],
                     ),
                   ),
-                ],
-              ),
-              const SizedBox(height: 16),
-
-              // ROI settings
-              _SectionCard(
-                title: 'ROI Settings',
-                icon: Icons.crop_free,
-                children: [
+                  const SizedBox(height: 12),
                   _PathField(
                     label: 'ROI Config File (.json)',
                     value: settings.roiConfigPath,
-                    onChanged: (path) {
-                      settingsProvider.updateRoiConfigPath(path);
-                    },
+                    onChanged: settingsProvider.updateRoiConfigPath,
                     onBrowse: () => _browseFile(
                       context,
                       'Select ROI Config File',
@@ -128,28 +120,106 @@ class SettingsScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 12),
                   SwitchListTile(
+                    contentPadding: EdgeInsets.zero,
                     title: const Text('Enable ROI'),
-                    subtitle: const Text('Apply ROI intrusion detection to results'),
+                    subtitle: const Text('Apply ROI intrusion detection on device'),
                     value: settings.roiEnabled,
-                    onChanged: (v) => settingsProvider.updateRoiEnabled(v),
+                    onChanged: settingsProvider.updateRoiEnabled,
+                  ),
+                  SwitchListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('Auto Reload ROI'),
+                    subtitle: const Text('Reload ROI file when detector sees it change'),
+                    value: settings.roiAutoReload,
+                    onChanged: settingsProvider.updateRoiAutoReload,
+                  ),
+                  SwitchListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('Render Preview'),
+                    subtitle: const Text('Leave detector-side preview rendering enabled'),
+                    value: settings.renderPreview,
+                    onChanged: settingsProvider.updateRenderPreview,
+                  ),
+                  SwitchListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('Filter By Class'),
+                    subtitle: const Text('Limit ROI checks to one class id'),
+                    value: settings.filterByClass,
+                    onChanged: settingsProvider.updateFilterByClass,
+                  ),
+                  const SizedBox(height: 8),
+                  _NumberField(
+                    label: 'Filter Class ID',
+                    value: settings.filterClassId,
+                    onChanged: settingsProvider.updateFilterClassId,
                   ),
                 ],
               ),
               const SizedBox(height: 16),
 
-              // ROI config summary
+              _SectionCard(
+                title: 'Remote Sync',
+                icon: Icons.sync_alt,
+                children: [
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      FilledButton.icon(
+                        icon: const Icon(Icons.download),
+                        label: const Text('Load From Device'),
+                        onPressed: processManager.busy
+                            ? null
+                            : () => _pullSettings(context),
+                      ),
+                      OutlinedButton.icon(
+                        icon: const Icon(Icons.upload),
+                        label: const Text('Apply To Device'),
+                        onPressed: processManager.busy
+                            ? null
+                            : () => _pushSettings(context),
+                      ),
+                      OutlinedButton.icon(
+                        icon: const Icon(Icons.refresh),
+                        label: const Text('Refresh Status'),
+                        onPressed: processManager.busy
+                            ? null
+                            : () => processManager.refreshStatus(settings),
+                      ),
+                    ],
+                  ),
+                  if (processManager.statusMessage != null) ...[
+                    const SizedBox(height: 12),
+                    Text(
+                      processManager.statusMessage!,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: processManager.status == GuardProcessStatus.error
+                            ? Colors.red.shade300
+                            : Colors.grey.shade300,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+              const SizedBox(height: 16),
+
               _SectionCard(
                 title: 'ROI Config Preview',
                 icon: Icons.preview,
                 children: [
                   _InfoRow('Camera ID', roiProvider.config.cameraId),
-                  _InfoRow('Image Size',
-                      '${roiProvider.config.imageWidth} × ${roiProvider.config.imageHeight}'),
+                  _InfoRow(
+                    'Image Size',
+                    '${roiProvider.config.imageWidth} × ${roiProvider.config.imageHeight}',
+                  ),
                   _InfoRow('Zone Count', '${roiProvider.config.allowedZones.length}'),
-                  _InfoRow('Active Zones',
-                      '${roiProvider.config.allowedZones.where((z) => z.enabled).length}'),
+                  _InfoRow(
+                    'Active Zones',
+                    '${roiProvider.config.allowedZones.where((z) => z.enabled).length}',
+                  ),
                   if (roiProvider.filePath != null)
-                    _InfoRow('Loaded File', roiProvider.filePath!),
+                    _InfoRow('Loaded Source', roiProvider.filePath!),
                 ],
               ),
             ],
@@ -157,6 +227,45 @@ class SettingsScreen extends StatelessWidget {
         );
       },
     );
+  }
+
+  Future<void> _pullSettings(BuildContext context) async {
+    final processManager = context.read<ProcessManagerService>();
+    final settingsProvider = context.read<SettingsProvider>();
+    try {
+      final remoteSettings = await processManager.pullSettings(settingsProvider.settings);
+      settingsProvider.applyRemoteSettings(remoteSettings);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Device settings loaded')),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to load settings: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _pushSettings(BuildContext context) async {
+    final processManager = context.read<ProcessManagerService>();
+    final settings = context.read<SettingsProvider>().settings;
+    try {
+      await processManager.pushSettings(settings);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Device settings updated')),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to update settings: $e')),
+        );
+      }
+    }
   }
 
   Future<void> _browseFile(
@@ -202,7 +311,9 @@ class _SectionCard extends StatelessWidget {
                 Text(
                   title,
                   style: const TextStyle(
-                      fontSize: 16, fontWeight: FontWeight.bold),
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ],
             ),
@@ -234,6 +345,7 @@ class _PathField extends StatelessWidget {
       children: [
         Expanded(
           child: TextFormField(
+            key: ValueKey('$label:$value'),
             initialValue: value,
             decoration: InputDecoration(
               labelText: label,
@@ -271,6 +383,7 @@ class _TextField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return TextFormField(
+      key: ValueKey('$label:$value'),
       initialValue: value,
       decoration: InputDecoration(
         labelText: label,
@@ -280,6 +393,34 @@ class _TextField extends StatelessWidget {
       style: const TextStyle(fontSize: 13, fontFamily: 'monospace'),
       maxLines: maxLines,
       onChanged: onChanged,
+    );
+  }
+}
+
+class _NumberField extends StatelessWidget {
+  final String label;
+  final int value;
+  final ValueChanged<int> onChanged;
+
+  const _NumberField({
+    required this.label,
+    required this.value,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return TextFormField(
+      key: ValueKey('$label:$value'),
+      initialValue: '$value',
+      decoration: InputDecoration(
+        labelText: label,
+        border: const OutlineInputBorder(),
+        isDense: true,
+      ),
+      keyboardType: TextInputType.number,
+      style: const TextStyle(fontSize: 13, fontFamily: 'monospace'),
+      onChanged: (value) => onChanged(int.tryParse(value) ?? 0),
     );
   }
 }
@@ -297,7 +438,7 @@ class _InfoRow extends StatelessWidget {
       child: Row(
         children: [
           SizedBox(
-            width: 120,
+            width: 140,
             child: Text(
               label,
               style: const TextStyle(fontSize: 12, color: Colors.grey),

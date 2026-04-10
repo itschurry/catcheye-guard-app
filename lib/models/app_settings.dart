@@ -1,7 +1,9 @@
-// catcheye-guard app settings model
+// catcheye-guard remote detector settings model
 
 class AppSettings {
-  String guardExecutablePath;
+  String detectorBaseUrl;
+  String streamPath;
+  String apiBasePath;
   String cameraPipeline;
   String modelParamPath;
   String modelBinPath;
@@ -14,7 +16,9 @@ class AppSettings {
   int filterClassId;
 
   AppSettings({
-    this.guardExecutablePath = '',
+    this.detectorBaseUrl = 'http://127.0.0.1:8080',
+    this.streamPath = '/',
+    this.apiBasePath = '/api',
     this.cameraPipeline =
         'libcamerasrc ! '
         'video/x-raw,width=1280,height=720,framerate=30/1,format=NV12 ! '
@@ -33,12 +37,144 @@ class AppSettings {
     this.filterClassId = 0,
   });
 
-  List<String> buildCommandArgs() {
-    final args = <String>[];
-    if (modelParamPath.isNotEmpty) args.add(modelParamPath);
-    if (modelBinPath.isNotEmpty) args.add(modelBinPath);
-    if (metadataPath.isNotEmpty) args.add(metadataPath);
-    if (roiConfigPath.isNotEmpty) args.add(roiConfigPath);
-    return args;
+  AppSettings copyWith({
+    String? detectorBaseUrl,
+    String? streamPath,
+    String? apiBasePath,
+    String? cameraPipeline,
+    String? modelParamPath,
+    String? modelBinPath,
+    String? metadataPath,
+    String? roiConfigPath,
+    bool? roiEnabled,
+    bool? roiAutoReload,
+    bool? renderPreview,
+    bool? filterByClass,
+    int? filterClassId,
+  }) {
+    return AppSettings(
+      detectorBaseUrl: detectorBaseUrl ?? this.detectorBaseUrl,
+      streamPath: streamPath ?? this.streamPath,
+      apiBasePath: apiBasePath ?? this.apiBasePath,
+      cameraPipeline: cameraPipeline ?? this.cameraPipeline,
+      modelParamPath: modelParamPath ?? this.modelParamPath,
+      modelBinPath: modelBinPath ?? this.modelBinPath,
+      metadataPath: metadataPath ?? this.metadataPath,
+      roiConfigPath: roiConfigPath ?? this.roiConfigPath,
+      roiEnabled: roiEnabled ?? this.roiEnabled,
+      roiAutoReload: roiAutoReload ?? this.roiAutoReload,
+      renderPreview: renderPreview ?? this.renderPreview,
+      filterByClass: filterByClass ?? this.filterByClass,
+      filterClassId: filterClassId ?? this.filterClassId,
+    );
+  }
+
+  Uri get streamUri => _resolveUri(streamPath);
+
+  Uri buildApiUri(String endpoint) {
+    final normalizedBase = apiBasePath.endsWith('/')
+        ? apiBasePath.substring(0, apiBasePath.length - 1)
+        : apiBasePath;
+    final normalizedEndpoint =
+        endpoint.startsWith('/') ? endpoint.substring(1) : endpoint;
+    return _resolveUri('$normalizedBase/$normalizedEndpoint');
+  }
+
+  Map<String, dynamic> toRemoteJson() {
+    return {
+      'camera_pipeline': cameraPipeline,
+      'model_param_path': modelParamPath,
+      'model_bin_path': modelBinPath,
+      'metadata_path': metadataPath,
+      'roi_config_path': roiConfigPath,
+      'roi_enabled': roiEnabled,
+      'roi_auto_reload': roiAutoReload,
+      'render_preview': renderPreview,
+      'filter_by_class': filterByClass,
+      'filter_class_id': filterClassId,
+    };
+  }
+
+  factory AppSettings.fromRemoteJson(Map<String, dynamic> json) {
+    return AppSettings(
+      cameraPipeline: _readString(json, 'camera_pipeline', 'cameraPipeline'),
+      modelParamPath: _readString(json, 'model_param_path', 'modelParamPath'),
+      modelBinPath: _readString(json, 'model_bin_path', 'modelBinPath'),
+      metadataPath: _readString(json, 'metadata_path', 'metadataPath'),
+      roiConfigPath: _readString(json, 'roi_config_path', 'roiConfigPath'),
+      roiEnabled: _readBool(json, 'roi_enabled', 'roiEnabled', fallback: true),
+      roiAutoReload: _readBool(
+        json,
+        'roi_auto_reload',
+        'roiAutoReload',
+        fallback: true,
+      ),
+      renderPreview: _readBool(
+        json,
+        'render_preview',
+        'renderPreview',
+        fallback: true,
+      ),
+      filterByClass: _readBool(
+        json,
+        'filter_by_class',
+        'filterByClass',
+        fallback: true,
+      ),
+      filterClassId: _readInt(
+        json,
+        'filter_class_id',
+        'filterClassId',
+        fallback: 0,
+      ),
+    );
+  }
+
+  Uri _resolveUri(String pathOrUrl) {
+    final base = _normalizeBaseUri(detectorBaseUrl);
+    return pathOrUrl.startsWith('http://') || pathOrUrl.startsWith('https://')
+        ? Uri.parse(pathOrUrl)
+        : base.resolve(pathOrUrl);
+  }
+
+  static Uri _normalizeBaseUri(String rawUrl) {
+    final trimmed = rawUrl.trim();
+    final withScheme = trimmed.startsWith('http://') || trimmed.startsWith('https://')
+        ? trimmed
+        : 'http://$trimmed';
+    final uri = Uri.parse(withScheme);
+    if (uri.path.isEmpty) {
+      return uri.replace(path: '/');
+    }
+    return uri;
+  }
+
+  static String _readString(
+    Map<String, dynamic> json,
+    String primary,
+    String secondary,
+  ) {
+    final value = json[primary] ?? json[secondary];
+    return value is String ? value : '';
+  }
+
+  static bool _readBool(
+    Map<String, dynamic> json,
+    String primary,
+    String secondary, {
+    required bool fallback,
+  }) {
+    final value = json[primary] ?? json[secondary];
+    return value is bool ? value : fallback;
+  }
+
+  static int _readInt(
+    Map<String, dynamic> json,
+    String primary,
+    String secondary, {
+    required int fallback,
+  }) {
+    final value = json[primary] ?? json[secondary];
+    return value is int ? value : fallback;
   }
 }

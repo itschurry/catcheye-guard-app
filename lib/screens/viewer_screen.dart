@@ -1,22 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../providers/settings_provider.dart';
 import '../services/frame_receiver_service.dart';
 import '../widgets/live_viewer.dart';
 
-/// Live preview viewer screen — connects to catcheye-guard frame stream.
+/// Live preview viewer screen — connects to the remote detector HTTP stream.
 
 class ViewerScreen extends StatelessWidget {
   const ViewerScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<FrameReceiverService>(
-      builder: (context, receiver, _) {
+    return Consumer2<FrameReceiverService, SettingsProvider>(
+      builder: (context, receiver, settingsProvider, _) {
+        final settings = settingsProvider.settings;
         return Column(
           children: [
             // Toolbar
-            _buildToolbar(context, receiver),
+            _buildToolbar(context, receiver, settings.streamUri.toString()),
             const Divider(height: 1),
 
             // Frame viewer
@@ -25,14 +27,18 @@ class ViewerScreen extends StatelessWidget {
             ),
 
             // Status bar
-            _buildStatusBar(receiver),
+            _buildStatusBar(receiver, settings.streamUri.toString()),
           ],
         );
       },
     );
   }
 
-  Widget _buildToolbar(BuildContext context, FrameReceiverService receiver) {
+  Widget _buildToolbar(
+    BuildContext context,
+    FrameReceiverService receiver,
+    String defaultStreamUrl,
+  ) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Row(
@@ -50,7 +56,13 @@ class ViewerScreen extends StatelessWidget {
             FilledButton.icon(
               icon: const Icon(Icons.power, size: 16),
               label: const Text('Connect'),
-              onPressed: () => _showConnectDialog(context, receiver),
+              onPressed: () => receiver.connect(defaultStreamUrl),
+            ),
+            const SizedBox(width: 8),
+            OutlinedButton.icon(
+              icon: const Icon(Icons.link, size: 16),
+              label: const Text('Change URL'),
+              onPressed: () => _showConnectDialog(context, receiver, defaultStreamUrl),
             ),
           ] else if (receiver.connecting) ...[
             const SizedBox(
@@ -110,7 +122,7 @@ class ViewerScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildStatusBar(FrameReceiverService receiver) {
+  Widget _buildStatusBar(FrameReceiverService receiver, String defaultStreamUrl) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       color: Colors.black26,
@@ -143,7 +155,7 @@ class ViewerScreen extends StatelessWidget {
           ),
           const Spacer(),
           Text(
-            'Socket: ${FrameReceiverService.defaultSocketPath}',
+            receiver.connectedUri?.toString() ?? defaultStreamUrl,
             style: const TextStyle(fontSize: 10, color: Colors.grey),
           ),
         ],
@@ -151,9 +163,13 @@ class ViewerScreen extends StatelessWidget {
     );
   }
 
-  void _showConnectDialog(BuildContext context, FrameReceiverService receiver) {
+  void _showConnectDialog(
+    BuildContext context,
+    FrameReceiverService receiver,
+    String defaultStreamUrl,
+  ) {
     final controller = TextEditingController(
-      text: FrameReceiverService.defaultSocketPath,
+      text: defaultStreamUrl,
     );
 
     showDialog(
@@ -164,8 +180,8 @@ class ViewerScreen extends StatelessWidget {
           controller: controller,
           autofocus: true,
           decoration: const InputDecoration(
-            labelText: 'Unix socket path',
-            hintText: '/tmp/catcheye_guard_preview.sock',
+            labelText: 'HTTP stream URL',
+            hintText: 'http://192.168.0.10:8080/',
             border: OutlineInputBorder(),
           ),
           style: const TextStyle(fontFamily: 'monospace', fontSize: 13),

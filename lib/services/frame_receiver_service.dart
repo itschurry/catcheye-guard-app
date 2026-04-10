@@ -1,14 +1,16 @@
 import 'dart:async';
 import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:flutter/foundation.dart';
 
-/// Receives JPEG frames from catcheye-guard via Unix domain socket.
-/// Protocol: [4-byte LE uint32 frame_size] [JPEG bytes] per frame.
+/// Receives JPEG frames from catcheye-guard over an HTTP stream.
+/// The parser extracts JPEG SOI/EOI markers, so it works with common MJPEG responses.
 
 class FrameReceiverService extends ChangeNotifier {
-  Socket? _socket;
+  final HttpClient _httpClient = HttpClient();
+  HttpClientRequest? _request;
+  HttpClientResponse? _response;
+  StreamSubscription<List<int>>? _streamSubscription;
   bool _connected = false;
   bool _connecting = false;
   String? _errorMessage;
@@ -18,9 +20,8 @@ class FrameReceiverService extends ChangeNotifier {
   int _framesThisSecond = 0;
   Timer? _fpsTimer;
 
-  // Internal receive buffer
-  final BytesBuilder _buffer = BytesBuilder(copy: false);
-  int? _pendingFrameSize;
+  final List<int> _buffer = <int>[];
+  Uri? _connectedUri;
 
   bool get connected => _connected;
   bool get connecting => _connecting;
@@ -28,10 +29,11 @@ class FrameReceiverService extends ChangeNotifier {
   Uint8List? get currentFrame => _currentFrame;
   int get frameCount => _frameCount;
   int get fps => _fps;
+  Uri? get connectedUri => _connectedUri;
 
-  static const String defaultSocketPath = '/tmp/catcheye_guard_preview.sock';
+  static const String defaultStreamUrl = 'http://127.0.0.1:8080/';
 
-  Future<void> connect([String socketPath = defaultSocketPath]) async {
+  Future<void> connect([String streamUrl = defaultStreamUrl]) async {
     if (_connected || _connecting) return;
 
     _connecting = true;
@@ -39,16 +41,28 @@ class FrameReceiverService extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final address = InternetAddress(socketPath, type: InternetAddressType.unix);
-      _socket = await Socket.connect(address, 0);
+      final uri = _normalizeUri(streamUrl);
+      _request = await _httpClient.getUrl(uri);
+      _request!.headers.set(HttpHeaders.cacheControlHeader, 'no-cache');
+      _request!.headers.set(HttpHeaders.acceptHeader, 'multipart/x-mixed-replace,image/jpeg,*/*');
+      _response = await _request!.close();
+      if (_response!.statusCode != HttpStatus.ok) {
+        throw HttpException(
+          'Unexpected HTTP status ${_response!.statusCode}',
+          uri: uri,
+        );
+      }
+
       _connected = true;
       _connecting = false;
       _frameCount = 0;
       _errorMessage = null;
+      _connectedUri = uri;
+      _buffer.clear();
 
       _startFpsCounter();
 
-      _socket!.listen(
+      _streamSubscription = _response!.listen(
         _onData,
         onError: (error) {
           _errorMessage = 'Connection error: $error';
@@ -79,12 +93,15 @@ class FrameReceiverService extends ChangeNotifier {
   void _disconnect() {
     _fpsTimer?.cancel();
     _fpsTimer = null;
-    _socket?.destroy();
-    _socket = null;
+    _streamSubscription?.cancel();
+    _streamSubscription = null;
+    _request?.abort();
+    _request = null;
+    _response = null;
     _connected = false;
     _connecting = false;
+    _connectedUri = null;
     _buffer.clear();
-    _pendingFrameSize = null;
     notifyListeners();
   }
 
@@ -97,57 +114,65 @@ class FrameReceiverService extends ChangeNotifier {
     });
   }
 
-  void _onData(Uint8List data) {
-    _buffer.add(data);
+  void _onData(List<int> data) {
+    _buffer.addAll(data);
 
     while (true) {
-      final bytes = _buffer.takeBytes();
-
-      // Need at least 4 bytes for frame size header
-      if (_pendingFrameSize == null) {
-        if (bytes.length < 4) {
-          _buffer.add(bytes);
-          break;
-        }
-        _pendingFrameSize = bytes[0] |
-            (bytes[1] << 8) |
-            (bytes[2] << 16) |
-            (bytes[3] << 24);
-
-        // Sanity check: frame shouldn't be larger than 10MB
-        if (_pendingFrameSize! > 10 * 1024 * 1024 || _pendingFrameSize! <= 0) {
-          _errorMessage = 'Invalid frame size: $_pendingFrameSize';
-          _disconnect();
-          return;
-        }
-
-        // Put remaining bytes back
-        if (bytes.length > 4) {
-          _buffer.add(Uint8List.sublistView(bytes, 4));
-        }
-        continue;
+      final start = _indexOfMarker(_buffer, const [0xFF, 0xD8]);
+      if (start < 0) {
+        _trimBuffer();
+        return;
       }
 
-      // Wait for complete frame
-      if (bytes.length < _pendingFrameSize!) {
-        _buffer.add(bytes);
-        break;
+      final end = _indexOfMarker(_buffer, const [0xFF, 0xD9], start + 2);
+      if (end < 0) {
+        if (start > 0) {
+          _buffer.removeRange(0, start);
+        }
+        _trimBuffer();
+        return;
       }
 
-      // Extract one complete JPEG frame
-      final jpegData = Uint8List.sublistView(bytes, 0, _pendingFrameSize!);
+      final frameEnd = end + 2;
+      final jpegData = Uint8List.fromList(_buffer.sublist(start, frameEnd));
       _currentFrame = jpegData;
       _frameCount++;
       _framesThisSecond++;
 
-      // Put remaining bytes back for next frame
-      if (bytes.length > _pendingFrameSize!) {
-        _buffer.add(Uint8List.sublistView(bytes, _pendingFrameSize!));
-      }
-      _pendingFrameSize = null;
-
+      _buffer.removeRange(0, frameEnd);
       notifyListeners();
     }
+  }
+
+  void _trimBuffer() {
+    const maxBufferedBytes = 2 * 1024 * 1024;
+    if (_buffer.length > maxBufferedBytes) {
+      _buffer.removeRange(0, _buffer.length - maxBufferedBytes);
+    }
+  }
+
+  int _indexOfMarker(List<int> source, List<int> marker, [int start = 0]) {
+    for (var i = start; i <= source.length - marker.length; i++) {
+      var matched = true;
+      for (var j = 0; j < marker.length; j++) {
+        if (source[i + j] != marker[j]) {
+          matched = false;
+          break;
+        }
+      }
+      if (matched) {
+        return i;
+      }
+    }
+    return -1;
+  }
+
+  Uri _normalizeUri(String rawUrl) {
+    final trimmed = rawUrl.trim();
+    final normalized = trimmed.startsWith('http://') || trimmed.startsWith('https://')
+        ? trimmed
+        : 'http://$trimmed';
+    return Uri.parse(normalized);
   }
 
   @override
