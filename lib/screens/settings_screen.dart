@@ -326,7 +326,7 @@ class _SectionCard extends StatelessWidget {
   }
 }
 
-class _PathField extends StatelessWidget {
+class _PathField extends StatefulWidget {
   final String label;
   final String value;
   final ValueChanged<String> onChanged;
@@ -340,34 +340,64 @@ class _PathField extends StatelessWidget {
   });
 
   @override
+  State<_PathField> createState() => _PathFieldState();
+}
+
+class _PathFieldState extends State<_PathField> {
+  late final TextEditingController _controller;
+  late final FocusNode _focusNode;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.value);
+    _focusNode = FocusNode();
+  }
+
+  @override
+  void didUpdateWidget(covariant _PathField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.value != _controller.text && !_focusNode.hasFocus) {
+      _controller.text = widget.value;
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Row(
       children: [
         Expanded(
           child: TextFormField(
-            key: ValueKey('$label:$value'),
-            initialValue: value,
+            controller: _controller,
+            focusNode: _focusNode,
             decoration: InputDecoration(
-              labelText: label,
+              labelText: widget.label,
               border: const OutlineInputBorder(),
               isDense: true,
             ),
             style: const TextStyle(fontSize: 13, fontFamily: 'monospace'),
-            onChanged: onChanged,
+            onChanged: widget.onChanged,
           ),
         ),
         const SizedBox(width: 8),
         IconButton(
           icon: const Icon(Icons.folder_open),
           tooltip: 'Browse',
-          onPressed: onBrowse,
+          onPressed: widget.onBrowse,
         ),
       ],
     );
   }
 }
 
-class _TextField extends StatelessWidget {
+class _TextField extends StatefulWidget {
   final String label;
   final String value;
   final ValueChanged<String> onChanged;
@@ -381,23 +411,53 @@ class _TextField extends StatelessWidget {
   });
 
   @override
+  State<_TextField> createState() => _TextFieldState();
+}
+
+class _TextFieldState extends State<_TextField> {
+  late final TextEditingController _controller;
+  late final FocusNode _focusNode;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.value);
+    _focusNode = FocusNode();
+  }
+
+  @override
+  void didUpdateWidget(covariant _TextField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.value != _controller.text && !_focusNode.hasFocus) {
+      _controller.text = widget.value;
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return TextFormField(
-      key: ValueKey('$label:$value'),
-      initialValue: value,
+      controller: _controller,
+      focusNode: _focusNode,
       decoration: InputDecoration(
-        labelText: label,
+        labelText: widget.label,
         border: const OutlineInputBorder(),
         isDense: true,
       ),
       style: const TextStyle(fontSize: 13, fontFamily: 'monospace'),
-      maxLines: maxLines,
-      onChanged: onChanged,
+      maxLines: widget.maxLines,
+      onChanged: widget.onChanged,
     );
   }
 }
 
-class _NumberField extends StatelessWidget {
+class _NumberField extends StatefulWidget {
   final String label;
   final int value;
   final ValueChanged<int> onChanged;
@@ -409,18 +469,49 @@ class _NumberField extends StatelessWidget {
   });
 
   @override
+  State<_NumberField> createState() => _NumberFieldState();
+}
+
+class _NumberFieldState extends State<_NumberField> {
+  late final TextEditingController _controller;
+  late final FocusNode _focusNode;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: '${widget.value}');
+    _focusNode = FocusNode();
+  }
+
+  @override
+  void didUpdateWidget(covariant _NumberField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final nextValue = '${widget.value}';
+    if (nextValue != _controller.text && !_focusNode.hasFocus) {
+      _controller.text = nextValue;
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return TextFormField(
-      key: ValueKey('$label:$value'),
-      initialValue: '$value',
+      controller: _controller,
+      focusNode: _focusNode,
       decoration: InputDecoration(
-        labelText: label,
+        labelText: widget.label,
         border: const OutlineInputBorder(),
         isDense: true,
       ),
       keyboardType: TextInputType.number,
       style: const TextStyle(fontSize: 13, fontFamily: 'monospace'),
-      onChanged: (value) => onChanged(int.tryParse(value) ?? 0),
+      onChanged: (value) => widget.onChanged(int.tryParse(value) ?? 0),
     );
   }
 }
