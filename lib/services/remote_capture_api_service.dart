@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
 
 import '../models/app_settings.dart';
 
@@ -274,6 +275,8 @@ class StationInspectionResult {
   final List<dynamic> detections;
   final Map<String, dynamic> measurements;
   final List<String> failedMetrics;
+  final Map<String, String> artifacts;
+  final String artifactError;
 
   const StationInspectionResult({
     required this.inspectionId,
@@ -286,9 +289,19 @@ class StationInspectionResult {
     required this.detections,
     required this.measurements,
     required this.failedMetrics,
+    this.artifacts = const {},
+    this.artifactError = '',
   });
 
   factory StationInspectionResult.fromJson(Map<String, dynamic> json) {
+    final rawArtifacts = json['artifacts'];
+    if (rawArtifacts != null &&
+        (rawArtifacts is! Map ||
+            rawArtifacts.entries.any(
+              (entry) => entry.key is! String || entry.value is! String,
+            ))) {
+      throw const FormatException('inspection artifacts string map expected');
+    }
     final detections = json['detections'];
     if (detections != null && detections is! List) {
       throw const FormatException('detections list expected');
@@ -318,6 +331,12 @@ class StationInspectionResult {
             : Map<String, dynamic>.from(measurements as Map),
       ),
       failedMetrics: List.unmodifiable(failedMetrics),
+      artifacts: Map.unmodifiable(
+        rawArtifacts == null
+            ? <String, String>{}
+            : Map<String, String>.from(rawArtifacts as Map),
+      ),
+      artifactError: _optionalString(json, 'artifact_error'),
     );
   }
 }
@@ -544,6 +563,63 @@ class RemoteCaptureApiService {
       settings.buildApiUri('capture/results'),
     );
     return StationCaptureResultList.fromJson(json);
+  }
+
+  Future<Uint8List> fetchStationImage(
+    AppSettings settings, {
+    required String cycleId,
+    required String inspectionId,
+    required String kind,
+  }) async {
+    final identifier = RegExp(r'^[A-Za-z0-9_.-]+$');
+    if (!identifier.hasMatch(cycleId) ||
+        !identifier.hasMatch(inspectionId) ||
+        (kind != 'raw' && kind != 'overlay')) {
+      throw const FormatException(
+        'cycle_id, inspection_id and raw/overlay kind are required',
+      );
+    }
+    final uri = settings
+        .buildApiUri('capture/results/${Uri.encodeComponent(cycleId)}/image')
+        .replace(
+          queryParameters: {'inspection_id': inspectionId, 'kind': kind},
+        );
+    HttpClientRequest? request;
+    const maxBytes = 16 * 1024 * 1024;
+    try {
+      request = await _client.getUrl(uri).timeout(_requestTimeout);
+      request.headers.set(HttpHeaders.acceptHeader, 'image/png');
+      final response = await request.close().timeout(_requestTimeout);
+      if (response.statusCode != HttpStatus.ok) {
+        final body = await response
+            .transform(utf8.decoder)
+            .join()
+            .timeout(_requestTimeout);
+        throw RemoteCaptureApiException(
+          method: 'GET',
+          uri: uri,
+          statusCode: response.statusCode,
+          message: body.isEmpty ? response.reasonPhrase : body,
+        );
+      }
+      if (response.headers.contentType?.mimeType != 'image/png') {
+        throw const FormatException('saved inspection image must be PNG');
+      }
+      if (response.contentLength > maxBytes) {
+        throw const FormatException('saved image exceeds 16 MiB');
+      }
+      final bytes = BytesBuilder(copy: false);
+      await for (final chunk in response.timeout(_requestTimeout)) {
+        if (bytes.length + chunk.length > maxBytes) {
+          throw const FormatException('saved image exceeds 16 MiB');
+        }
+        bytes.add(chunk);
+      }
+      return bytes.takeBytes();
+    } catch (_) {
+      request?.abort();
+      rethrow;
+    }
   }
 
   Future<StationUndistortion> fetchUndistortion(

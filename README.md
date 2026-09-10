@@ -130,7 +130,7 @@ flutter test
 | ROI Editor | HSS / Pick | Person 또는 Pallet ROI 편집 |
 | Camera Properties | HSS / Capture | 카메라 runtime property 조절 |
 | Camera Geometry | Pick | 카메라 intrinsic과 로봇 base 기준 extrinsic 위치 관계 조회 |
-| Results | Inspection | 최근 촬영 cycle의 상태, 검사별 판정, 측정값과 원본 JSON 조회 |
+| Results | Inspection | 최근 촬영 cycle의 저장 이미지, 검사별 판정·점검 안내, 측정값과 원본 JSON 조회 |
 | References | Inspection | 원본 예시 촬영·박스 편집·리비전 저장, 모델 빌드·검증·명시적 적용·이전 모델 복구 |
 
 Pick 연결에서는 `Viewer`, `ROI Editor`, `Camera Geometry`만 보여준다.
@@ -218,6 +218,14 @@ runtime 재시작이나 서버 이력 제한으로 응답 목록에서 빠져도
 `last_result`는 다른 요청 결과일 수 있으므로 결과 목록의 대체값으로 사용하지
 않는다.
 
+`Results`는 촬영 시각과 전체 판정 원인을 표시하고 NG·미검출 부위를 먼저 선택한다.
+부위 버튼으로 대상을 바꾸고 `검출 결과` / `원본`으로 검사 당시 저장된 PNG를 비교한다.
+이미지는 `GET /api/capture/results/<cycle_id>/image?inspection_id=<id>&kind=overlay|raw`로 읽으며,
+실시간 카메라나 다른 cycle을 사용하지 않는다. 휠·+/− 확대와 드래그 이동을 지원한다.
+판정 이유·점검 항목·형상 측정값과 기준을 이미지 아래에 표시하고 전체 ID·JSON은 상세에서 펼친다.
+Inspect에 이미지 조회 API를 적용해야 하며 기존 이력도 runtime에 남아 있고 파일이 보존돼 있으면 조회할 수 있다.
+저장 비활성화·파일 삭제·이력 만료·API 미지원은 이미지 오류로 표시한다. 연결 장비를 바꾸면 이전 장비 이력은 비운다.
+
 예시 관리 옵션이 설치된 장비는 Viewer의 방패 아이콘에서 전달받은 관리
 토큰을 등록한다. Studio는 인증된 `GET /api/reference/status` 기능 플래그를
 확인한다. 상태 API의 404나 비활성 기능 플래그만 미지원으로 처리하고, 인증
@@ -234,12 +242,9 @@ References에서는 `Model a0736e17`, `Revision d446ad82`처럼 ID 앞 8자리�
 `Build source`에서 빌드 대상 리비전을 확인한다. 전체 ID는 모델 상세의
 `Full identifiers`를 펼쳐 선택·복사할 수 있다. API와 저장 데이터는 전체 ID를 사용한다.
 
-Models의 `검증 이미지 확인`에서 부위별 원본 이미지·판정·점검 항목을 함께 확인한다.
-`이번 리비전`과 `초기 기준 이미지`는 모두 선택한 모델로 검사한 결과이며 실시간 카메라 영상이 아니다.
-선택한 모델의 `reference_revision_id` 또는 초기 `refrev_initial`에서 해당 클래스의 불변 이미지를 읽는다.
-검출 위치가 기록된 모델은 이미지 위에 검출 박스·번호를 표시하고 점수와 형상 측정값/기준을 보여준다.
-휠·확대 버튼·드래그로 자세히 볼 수 있다. 기존 모델의 누락된 검출 위치는 명시하며 원본 이미지 조회와 구분한다.
-검출 위치·측정값은 Inspect 서버 업데이트 후 새로 빌드한 모델부터 기록된다. 이미지 읽기 실패는 오류로 표시한다.
+Models는 빌드 상태, 기술 검증 통과 여부, 원본 리비전과 모델 적용·복구를 표시한다.
+이미지 검증 영역은 제공하지 않는다. 실제 검사 이미지와 판정은 모델 적용 후 새로 촬영해
+`Results`에서 확인한다. 기술 검증 통과는 생산 품질 승인을 의미하지 않는다.
 
 모바일 `References` 도구 모음은 상태와 작업 전환 버튼을 여러 줄로 배치해서
 390px 너비에서도 가로 스크롤이나 오버플로 없이 동작한다.

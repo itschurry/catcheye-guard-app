@@ -4,7 +4,6 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 import '../widgets/zoomable_viewport.dart';
-import '../widgets/model_validation_review.dart';
 import 'package:provider/provider.dart';
 
 import '../models/app_settings.dart';
@@ -843,14 +842,6 @@ class _ReferenceImagesScreenState extends State<ReferenceImagesScreen> {
               ),
             ),
             const SizedBox(height: 14),
-            if (model.validation?.results.isNotEmpty == true) ...[
-              ModelValidationReview(
-                key: ValueKey('validation-${model.modelId}'),
-                model: model,
-                api: _api,
-              ),
-              const SizedBox(height: 12),
-            ],
             FilledButton.icon(
               onPressed:
                   status.capabilities.modelActivation &&
