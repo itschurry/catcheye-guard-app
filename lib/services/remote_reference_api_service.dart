@@ -391,6 +391,42 @@ enum ModelBuildState {
   };
 }
 
+class ModelValidationDetection {
+  const ModelValidationDetection({
+    required this.className,
+    required this.confidence,
+    required this.box,
+  });
+
+  final String className;
+  final double confidence;
+  // Original image pixels, x/y/width/height (not the reference box xyxy format).
+  final List<double> box;
+
+  factory ModelValidationDetection.fromJson(Map<String, dynamic> json) {
+    final rawBox = json['box'];
+    final confidence = _optionalNumber(json, 'confidence')?.toDouble();
+    if (rawBox is! List ||
+        rawBox.length != 4 ||
+        rawBox.any((value) => value is! num || !value.isFinite) ||
+        (rawBox[2] as num) <= 0 ||
+        (rawBox[3] as num) <= 0 ||
+        confidence == null ||
+        !confidence.isFinite ||
+        confidence < 0 ||
+        confidence > 1) {
+      throw const FormatException(
+        'invalid validation detection geometry or confidence',
+      );
+    }
+    return ModelValidationDetection(
+      className: _requiredString(json, 'class_name'),
+      confidence: confidence,
+      box: List.unmodifiable(rawBox.map((value) => (value as num).toDouble())),
+    );
+  }
+}
+
 class ModelValidationResult {
   const ModelValidationResult({
     required this.source,
@@ -398,6 +434,8 @@ class ModelValidationResult {
     required this.status,
     required this.reason,
     required this.latencyMs,
+    this.detections,
+    this.measurements = const {},
   });
 
   final String source;
@@ -405,14 +443,44 @@ class ModelValidationResult {
   final String status;
   final String reason;
   final double? latencyMs;
+  // null: positions were not recorded; empty: inference found no candidates.
+  final List<ModelValidationDetection>? detections;
+  final Map<String, dynamic> measurements;
 
   factory ModelValidationResult.fromJson(Map<String, dynamic> json) {
+    final rawDetections = json['detections'];
+    final rawMeasurements = json['measurements'];
+    if (rawDetections != null && rawDetections is! List) {
+      throw const FormatException('validation detections list expected');
+    }
+    if (rawMeasurements != null && rawMeasurements is! Map) {
+      throw const FormatException('validation measurements object expected');
+    }
     return ModelValidationResult(
       source: _requiredString(json, 'source'),
       className: _requiredString(json, 'class_name'),
       status: _requiredString(json, 'status'),
       reason: _optionalString(json, 'reason'),
       latencyMs: _optionalNumber(json, 'latency_ms')?.toDouble(),
+      detections: rawDetections == null
+          ? null
+          : List.unmodifiable(
+              (rawDetections as List).map((value) {
+                if (value is! Map) {
+                  throw const FormatException(
+                    'validation detection object expected',
+                  );
+                }
+                return ModelValidationDetection.fromJson(
+                  Map<String, dynamic>.from(value),
+                );
+              }),
+            ),
+      measurements: Map.unmodifiable(
+        rawMeasurements == null
+            ? <String, dynamic>{}
+            : Map<String, dynamic>.from(rawMeasurements as Map),
+      ),
     );
   }
 }

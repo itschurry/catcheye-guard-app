@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'zoomable_viewport.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 
 /// Displays either an RTSP player or WebSocket JPEG frames.
@@ -38,20 +39,22 @@ class LiveViewer extends StatelessWidget {
       );
     }
 
-    return Container(
-      color: Colors.black,
-      child: isRtsp
-          ? Video(controller: controller, fit: fit, controls: NoVideoControls)
-          : frameData == null
-          ? const Center(child: CircularProgressIndicator())
-          : Center(
-              child: Image.memory(
-                frameData!,
-                fit: fit,
-                gaplessPlayback: true,
-                filterQuality: FilterQuality.medium,
+    return ZoomableViewport(
+      child: Container(
+        color: Colors.black,
+        child: isRtsp
+            ? Video(controller: controller, fit: fit, controls: NoVideoControls)
+            : frameData == null
+            ? const Center(child: CircularProgressIndicator())
+            : Center(
+                child: Image.memory(
+                  frameData!,
+                  fit: fit,
+                  gaplessPlayback: true,
+                  filterQuality: FilterQuality.medium,
+                ),
               ),
-            ),
+      ),
     );
   }
 }

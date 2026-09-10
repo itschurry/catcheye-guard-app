@@ -15,6 +15,7 @@ import '../services/remote_device_info_service.dart';
 import '../services/remote_recording_api_service.dart';
 import '../services/reference_credential_store.dart';
 import '../widgets/live_viewer.dart';
+import '../widgets/zoomable_viewport.dart';
 import '../widgets/point_cloud_viewer.dart';
 import '../widgets/stream_selector.dart';
 import '../widgets/station_capture_actions.dart';
@@ -767,7 +768,7 @@ class _ViewerScreenState extends State<ViewerScreen>
       return Container(
         color: Colors.black,
         alignment: Alignment.center,
-        child: imageStack,
+        child: ZoomableViewport(key: ValueKey(stream.key), child: imageStack),
       );
     }
     if (stream.isProjectedDepth && stream.projectedDepth != null) {
@@ -786,24 +787,27 @@ class _ViewerScreenState extends State<ViewerScreen>
       return Container(
         color: Colors.black,
         alignment: Alignment.center,
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            Image.memory(
-              camera.jpegBytes,
-              fit: BoxFit.contain,
-              gaplessPlayback: true,
-              filterQuality: FilterQuality.low,
-            ),
-            ColoredBox(color: Colors.black.withValues(alpha: 0.22)),
-            CustomPaint(
-              painter: _ProjectedDepthPainter(
-                data: stream.projectedDepth!,
-                imageSize: imageSize,
-                pointSize: _pointSize,
+        child: ZoomableViewport(
+          key: ValueKey(stream.key),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              Image.memory(
+                camera.jpegBytes,
+                fit: BoxFit.contain,
+                gaplessPlayback: true,
+                filterQuality: FilterQuality.low,
               ),
-            ),
-          ],
+              ColoredBox(color: Colors.black.withValues(alpha: 0.22)),
+              CustomPaint(
+                painter: _ProjectedDepthPainter(
+                  data: stream.projectedDepth!,
+                  imageSize: imageSize,
+                  pointSize: _pointSize,
+                ),
+              ),
+            ],
+          ),
         ),
       );
     }
@@ -936,9 +940,7 @@ class _ViewerScreenState extends State<ViewerScreen>
 
     final colorScheme = Theme.of(context).colorScheme;
     final splitViewEnabled = remoteDeviceKind == RemoteDeviceKind.pick;
-    final captureControlsEnabled =
-        remoteDeviceKind == RemoteDeviceKind.capture ||
-        remoteDeviceKind == RemoteDeviceKind.inspection;
+    final captureControlsEnabled = remoteDeviceKind == RemoteDeviceKind.capture;
     final recordingControlsEnabled =
         remoteDeviceKind == RemoteDeviceKind.hss ||
         remoteDeviceKind == RemoteDeviceKind.capture;
@@ -1118,9 +1120,7 @@ class _ViewerScreenState extends State<ViewerScreen>
   ) {
     final colorScheme = Theme.of(context).colorScheme;
     final splitViewEnabled = remoteDeviceKind == RemoteDeviceKind.pick;
-    final captureControlsEnabled =
-        remoteDeviceKind == RemoteDeviceKind.capture ||
-        remoteDeviceKind == RemoteDeviceKind.inspection;
+    final captureControlsEnabled = remoteDeviceKind == RemoteDeviceKind.capture;
     final recordingControlsEnabled =
         remoteDeviceKind == RemoteDeviceKind.hss ||
         remoteDeviceKind == RemoteDeviceKind.capture;

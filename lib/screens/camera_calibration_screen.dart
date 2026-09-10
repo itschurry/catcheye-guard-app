@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import '../widgets/zoomable_viewport.dart';
 import 'package:provider/provider.dart';
 
 import '../providers/settings_provider.dart';
@@ -103,11 +104,14 @@ class _CameraCalibrationScreenState extends State<CameraCalibrationScreen> {
               isRtsp: receiver.isRtsp,
               frameData: receiver.currentFrame,
             )
-          : Image.memory(
-              camera.jpegBytes,
-              fit: BoxFit.contain,
-              gaplessPlayback: true,
-              filterQuality: FilterQuality.medium,
+          : ZoomableViewport(
+              key: ValueKey(camera.key),
+              child: Image.memory(
+                camera.jpegBytes,
+                fit: BoxFit.contain,
+                gaplessPlayback: true,
+                filterQuality: FilterQuality.medium,
+              ),
             ),
     );
   }

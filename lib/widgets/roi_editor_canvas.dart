@@ -1,6 +1,8 @@
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/gestures.dart';
+import 'zoomable_viewport.dart';
 import 'package:provider/provider.dart';
 
 import '../models/roi_config.dart';
@@ -50,69 +52,84 @@ class _RoiEditorCanvasState extends State<RoiEditorCanvas> {
                 ? canvasHeight / config.imageHeight
                 : 1.0;
 
-            return Center(
-              child: Container(
-                width: canvasWidth,
-                height: canvasHeight,
-                decoration: BoxDecoration(
-                  color: Colors.black87,
-                  border: Border.all(color: Colors.grey.shade700),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                clipBehavior: Clip.antiAlias,
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    if (widget.backgroundImageBytes != null)
-                      Image.memory(
-                        widget.backgroundImageBytes!,
-                        fit: BoxFit.fill,
-                        gaplessPlayback: true,
-                      ),
-                    MouseRegion(
-                      onHover: (event) =>
-                          _onHover(event.localPosition, config, scaleX, scaleY),
-                      onExit: (_) => setState(() {
-                        _hoveredZone = null;
-                        _hoveredPoint = null;
-                      }),
-                      cursor: _hoveredPoint != null
-                          ? SystemMouseCursors.grab
-                          : SystemMouseCursors.precise,
-                      child: GestureDetector(
-                        onPanStart: (details) => _onPanStart(
-                          details.localPosition,
+            return ZoomableViewport(
+              key: ValueKey(
+                '${provider.selectedKind}-${config.imageWidth}x${config.imageHeight}',
+              ),
+              editable: true,
+              child: Center(
+                child: Container(
+                  width: canvasWidth,
+                  height: canvasHeight,
+                  decoration: BoxDecoration(
+                    color: Colors.black87,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  foregroundDecoration: BoxDecoration(
+                    border: Border.all(color: Colors.grey.shade700),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  clipBehavior: Clip.antiAlias,
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      if (widget.backgroundImageBytes != null)
+                        Image.memory(
+                          widget.backgroundImageBytes!,
+                          fit: BoxFit.fill,
+                          gaplessPlayback: true,
+                        ),
+                      MouseRegion(
+                        onHover: (event) => _onHover(
+                          event.localPosition,
                           config,
                           scaleX,
                           scaleY,
                         ),
-                        onPanUpdate: (details) => _onPanUpdate(
-                          details.localPosition,
-                          provider,
-                          scaleX,
-                          scaleY,
-                        ),
-                        onPanEnd: (_) => _onPanEnd(),
-                        onTapUp: (details) => _onTapUp(
-                          details.localPosition,
-                          provider,
-                          config,
-                          scaleX,
-                          scaleY,
-                        ),
-                        child: CustomPaint(
-                          size: canvasSize,
-                          painter: RoiCanvasPainter(
-                            config: config,
-                            selectedZoneIndex: provider.selectedZoneIndex,
-                            hoveredPointZone: _hoveredZone,
-                            hoveredPointIndex: _hoveredPoint,
-                            canvasSize: canvasSize,
+                        onExit: (_) => setState(() {
+                          _hoveredZone = null;
+                          _hoveredPoint = null;
+                        }),
+                        cursor: _hoveredPoint != null
+                            ? SystemMouseCursors.grab
+                            : SystemMouseCursors.precise,
+                        child: GestureDetector(
+                          dragStartBehavior: DragStartBehavior.down,
+                          onPanCancel: _onPanEnd,
+                          onPanStart: (details) => _onPanStart(
+                            details.localPosition,
+                            config,
+                            scaleX,
+                            scaleY,
+                          ),
+                          onPanUpdate: (details) => _onPanUpdate(
+                            details.localPosition,
+                            provider,
+                            scaleX,
+                            scaleY,
+                          ),
+                          onPanEnd: (_) => _onPanEnd(),
+                          onTapUp: (details) => _onTapUp(
+                            details.localPosition,
+                            provider,
+                            config,
+                            scaleX,
+                            scaleY,
+                          ),
+                          child: CustomPaint(
+                            size: canvasSize,
+                            painter: RoiCanvasPainter(
+                              config: config,
+                              selectedZoneIndex: provider.selectedZoneIndex,
+                              hoveredPointZone: _hoveredZone,
+                              hoveredPointIndex: _hoveredPoint,
+                              canvasSize: canvasSize,
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             );

@@ -60,7 +60,7 @@ void main() {
     await tester.tap(find.text('Models'));
     await tester.pumpAndSettle();
 
-    expect(find.text('model_initial'), findsWidgets);
+    expect(find.text('Model initial'), findsWidgets);
     expect(find.text('Technical validation passed'), findsOneWidget);
     expect(
       find.textContaining('Technical validation is not production quality'),
@@ -69,6 +69,98 @@ void main() {
     expect(find.text('ACTIVE'), findsWidgets);
     expect(tester.takeException(), isNull);
   });
+
+  for (final isPhone in [false, true]) {
+    testWidgets('model source labels and full IDs (phone: $isPhone)', (
+      tester,
+    ) async {
+      await tester.binding.setSurfaceSize(
+        isPhone ? const Size(390, 844) : const Size(1200, 900),
+      );
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      const modelId = 'model_a0736e17fbb47392a713d57677751ccb';
+      const revisionId = 'refrev_d446ad82781715d5b49204e878e3c20f';
+      final api = _FakeReferenceApi(modelId: modelId, revisionId: revisionId);
+      final settings = AppSettings(
+        detectorBaseUrl: 'http://station.test:8090',
+        remoteDeviceKind: RemoteDeviceKind.inspection,
+      );
+      final store = ReferenceCredentialStore(
+        backend: _MemoryCredentialBackend(),
+      );
+      await store.writeToken(
+        settings,
+        'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+      );
+      await tester.pumpWidget(
+        MultiProvider(
+          providers: [
+            ChangeNotifierProvider(
+              create: (_) => SettingsProvider(initialSettings: settings),
+            ),
+            ChangeNotifierProvider(
+              create: (_) => ReferenceCredentialProvider(store: store),
+            ),
+          ],
+          child: MaterialApp(
+            theme: ThemeData.dark(useMaterial3: true),
+            home: Scaffold(
+              body: ReferenceImagesScreen(
+                isPhone: isPhone,
+                initialStatus: _FakeReferenceApi.status,
+                api: api,
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.scrollUntilVisible(
+        find.byKey(const ValueKey('base-revision-$revisionId-1')),
+        160,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Revision d446ad82'), findsWidgets);
+      final revisionItem = tester
+          .widgetList<DropdownMenuItem<String>>(
+            find.byType(DropdownMenuItem<String>),
+          )
+          .where((item) => item.value == revisionId);
+      expect(revisionItem, hasLength(1));
+
+      await tester.tap(find.byIcon(Icons.model_training_outlined));
+      await tester.pumpAndSettle();
+      expect(find.text('Model a0736e17'), findsWidgets);
+      expect(find.text('Source: Revision d446ad82'), findsOneWidget);
+      expect(find.text('Source: Revision d446ad82\nVALIDATED'), findsOneWidget);
+      expect(find.text('Build source: Revision d446ad82'), findsOneWidget);
+      expect(find.textContaining(modelId), findsNothing);
+      expect(tester.takeException(), isNull);
+
+      await tester.tap(find.text('Full identifiers'));
+      await tester.pumpAndSettle();
+      expect(
+        find.text('Model ID: $modelId\nSource revision ID: $revisionId'),
+        findsOneWidget,
+      );
+      expect(tester.takeException(), isNull);
+
+      await tester.tap(find.text('Build selected revision'));
+      await tester.pumpAndSettle();
+      expect(find.text('Build source: Revision d446ad82'), findsNWidgets(2));
+      await tester.tap(find.byType(CheckboxListTile));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Approve and build'));
+      await tester.pumpAndSettle();
+      expect(api.requestedRevisionId, revisionId);
+      expect(
+        find.textContaining('Build completed for Revision d446ad82'),
+        findsOneWidget,
+      );
+      expect(tester.takeException(), isNull);
+    });
+  }
 
   testWidgets('reference toolbar fits a 390px phone viewport', (tester) async {
     await tester.binding.setSurfaceSize(const Size(390, 844));
@@ -213,6 +305,34 @@ void main() {
 }
 
 class _FakeReferenceApi extends RemoteReferenceApiService {
+  _FakeReferenceApi({
+    this.modelId = 'model_initial',
+    this.revisionId = 'refrev_initial',
+  });
+
+  final String modelId;
+  final String revisionId;
+  String? requestedRevisionId;
+
+  @override
+  Future<ModelBuild> requestModelBuild(
+    AppSettings settings, {
+    required String referenceRevisionId,
+    required String bearerToken,
+    String? requestId,
+  }) async {
+    requestedRevisionId = referenceRevisionId;
+    return ModelBuild(
+      buildId: 'build_test',
+      state: ModelBuildState.succeeded,
+      referenceRevisionId: referenceRevisionId,
+      candidateModelId: modelId,
+      validation: null,
+      error: '',
+      createdAtMs: 1788415200000,
+    );
+  }
+
   static const status = ReferenceApiStatus(
     apiVersion: 1,
     capabilities: ReferenceCapabilities(
@@ -243,10 +363,10 @@ class _FakeReferenceApi extends RemoteReferenceApiService {
     required String bearerToken,
     int limit = 20,
     String? cursor,
-  }) async => const ReferenceRevisionList(
+  }) async => ReferenceRevisionList(
     revisions: [
       ReferenceRevisionSummary(
-        revisionId: 'refrev_initial',
+        revisionId: revisionId,
         baseRevisionId: null,
         createdAtMs: 1788415200000,
       ),
@@ -259,11 +379,11 @@ class _FakeReferenceApi extends RemoteReferenceApiService {
     AppSettings settings,
     String revisionId, {
     required String bearerToken,
-  }) async => const ReferenceRevision(
-    revisionId: 'refrev_initial',
+  }) async => ReferenceRevision(
+    revisionId: revisionId,
     baseRevisionId: null,
     createdAtMs: 1788415200000,
-    entries: [
+    entries: const [
       ReferenceRevisionEntry(
         className: 'stud',
         imageId: 'img_initial',
@@ -282,11 +402,11 @@ class _FakeReferenceApi extends RemoteReferenceApiService {
     required String bearerToken,
     int limit = 20,
     String? cursor,
-  }) async => const ReferenceModelList(
+  }) async => ReferenceModelList(
     models: [
       ReferenceModel(
-        modelId: 'model_initial',
-        referenceRevisionId: 'refrev_initial',
+        modelId: modelId,
+        referenceRevisionId: revisionId,
         createdAtMs: 1788415200000,
         engineSha256: 'engine',
         metadataSha256: 'metadata',

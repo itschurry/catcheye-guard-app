@@ -2,6 +2,9 @@ import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/gestures.dart';
+import '../widgets/zoomable_viewport.dart';
+import '../widgets/model_validation_review.dart';
 import 'package:provider/provider.dart';
 
 import '../models/app_settings.dart';
@@ -144,7 +147,7 @@ class _ReferenceImagesScreenState extends State<ReferenceImagesScreen> {
                 if (status?.activeModelId case final activeModel?) ...[
                   const SizedBox(height: 6),
                   Text(
-                    'Active model: $activeModel',
+                    'Active: ${_modelLabel(activeModel)}',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
@@ -179,7 +182,7 @@ class _ReferenceImagesScreenState extends State<ReferenceImagesScreen> {
                   const SizedBox(width: 8),
                   Flexible(
                     child: Text(
-                      'Active model: $activeModel',
+                      'Active: ${_modelLabel(activeModel)}',
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         fontSize: 12,
@@ -434,9 +437,12 @@ class _ReferenceImagesScreenState extends State<ReferenceImagesScreen> {
               for (final revision in _revisions)
                 DropdownMenuItem(
                   value: revision.revisionId,
-                  child: Text(
-                    revision.revisionId,
-                    overflow: TextOverflow.ellipsis,
+                  child: Tooltip(
+                    message: revision.revisionId,
+                    child: Text(
+                      _displayId(revision.revisionId),
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
                 ),
             ],
@@ -506,6 +512,7 @@ class _ReferenceImagesScreenState extends State<ReferenceImagesScreen> {
           const SizedBox(height: 10),
           Expanded(
             child: ReferenceBoxEditor(
+              key: ValueKey(image.imageId),
               imageBytes: _imageBytes!,
               imageWidth: image.width,
               imageHeight: image.height,
@@ -641,6 +648,13 @@ class _ReferenceImagesScreenState extends State<ReferenceImagesScreen> {
                   ),
                 ),
                 const SizedBox(height: 10),
+                if (_baseRevisionId case final revisionId?) ...[
+                  Tooltip(
+                    message: revisionId,
+                    child: Text('Build source: ${_displayId(revisionId)}'),
+                  ),
+                  const SizedBox(height: 8),
+                ],
                 FilledButton.icon(
                   onPressed:
                       status.capabilities.modelBuild &&
@@ -670,16 +684,25 @@ class _ReferenceImagesScreenState extends State<ReferenceImagesScreen> {
                           active ? Icons.check_circle : Icons.memory_outlined,
                           color: active ? Colors.greenAccent : null,
                         ),
-                        title: Text(
-                          model.modelId,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(fontFamily: 'monospace'),
+                        title: Tooltip(
+                          message: model.modelId,
+                          child: Text(
+                            _displayId(model.modelId),
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(fontFamily: 'monospace'),
+                          ),
                         ),
-                        subtitle: Text(
-                          active
-                              ? 'ACTIVE · ${model.referenceRevisionId}'
-                              : '${model.technicalPassed ? 'VALIDATED' : 'UNVALIDATED'} · ${model.referenceRevisionId}',
-                          overflow: TextOverflow.ellipsis,
+                        isThreeLine: true,
+                        subtitle: Tooltip(
+                          message: model.referenceRevisionId,
+                          child: Text(
+                            'Source: ${_displayId(model.referenceRevisionId)}\n'
+                            '${active
+                                ? 'ACTIVE'
+                                : model.technicalPassed
+                                ? 'VALIDATED'
+                                : 'UNVALIDATED'}',
+                          ),
                         ),
                         onTap: () => setState(() {
                           _selectedModel = model;
@@ -737,7 +760,7 @@ class _ReferenceImagesScreenState extends State<ReferenceImagesScreen> {
               id: activation.activationId,
               state: _activationStateLabel(activation.state),
               error: activation.error,
-              detail: 'Actual active model: ${activation.activeModelId}',
+              detail: 'Actual active: ${_modelLabel(activation.activeModelId)}',
               onRefresh: !activation.state.isFinal && !_modelActionInFlight
                   ? _resumeModelActivation
                   : null,
@@ -755,7 +778,7 @@ class _ReferenceImagesScreenState extends State<ReferenceImagesScreen> {
               children: [
                 Expanded(
                   child: SelectableText(
-                    model.modelId,
+                    _displayId(model.modelId),
                     style: Theme.of(
                       context,
                     ).textTheme.titleLarge?.copyWith(fontFamily: 'monospace'),
@@ -766,8 +789,25 @@ class _ReferenceImagesScreenState extends State<ReferenceImagesScreen> {
               ],
             ),
             const SizedBox(height: 8),
-            Text('Reference revision: ${model.referenceRevisionId}'),
+            Tooltip(
+              message: model.referenceRevisionId,
+              child: Text('Source: ${_displayId(model.referenceRevisionId)}'),
+            ),
             Text('Created: ${_formatTimestamp(model.createdAtMs)}'),
+            ExpansionTile(
+              key: ValueKey('model-identifiers-${model.modelId}'),
+              tilePadding: EdgeInsets.zero,
+              title: const Text('Full identifiers'),
+              children: [
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: SelectableText(
+                    'Model ID: ${model.modelId}\n'
+                    'Source revision ID: ${model.referenceRevisionId}',
+                  ),
+                ),
+              ],
+            ),
             const SizedBox(height: 14),
             Row(
               children: [
@@ -780,11 +820,13 @@ class _ReferenceImagesScreenState extends State<ReferenceImagesScreen> {
                       : scheme.error,
                 ),
                 const SizedBox(width: 8),
-                Text(
-                  model.technicalPassed
-                      ? 'Technical validation passed'
-                      : 'Technical validation not passed',
-                  style: const TextStyle(fontWeight: FontWeight.bold),
+                Expanded(
+                  child: Text(
+                    model.technicalPassed
+                        ? 'Technical validation passed'
+                        : 'Technical validation not passed',
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
                 ),
               ],
             ),
@@ -802,23 +844,11 @@ class _ReferenceImagesScreenState extends State<ReferenceImagesScreen> {
             ),
             const SizedBox(height: 14),
             if (model.validation?.results.isNotEmpty == true) ...[
-              const Text(
-                'Validation results',
-                style: TextStyle(fontWeight: FontWeight.bold),
+              ModelValidationReview(
+                key: ValueKey('validation-${model.modelId}'),
+                model: model,
+                api: _api,
               ),
-              const SizedBox(height: 6),
-              for (final result in model.validation!.results)
-                ListTile(
-                  dense: true,
-                  contentPadding: EdgeInsets.zero,
-                  leading: _StateChip(state: result.status),
-                  title: Text(
-                    '${_classLabel(result.className)} · ${result.source}',
-                  ),
-                  subtitle: Text(
-                    '${result.reason}${result.latencyMs == null ? '' : ' · ${result.latencyMs!.toStringAsFixed(1)} ms'}',
-                  ),
-                ),
               const SizedBox(height: 12),
             ],
             FilledButton.icon(
@@ -1109,7 +1139,7 @@ class _ReferenceImagesScreenState extends State<ReferenceImagesScreen> {
           ..._revisions.where((item) => item.revisionId != revision.revisionId),
         ];
       });
-      _showMessage('Revision ${revision.revisionId} was saved.');
+      _showMessage('${_displayId(revision.revisionId)} was saved.');
       unawaited(_reload());
     } catch (error) {
       if (mounted) _showMessage(_describeError(error), error: true);
@@ -1236,7 +1266,10 @@ class _ReferenceImagesScreenState extends State<ReferenceImagesScreen> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Reference revision: $revisionId'),
+                Tooltip(
+                  message: revisionId,
+                  child: Text('Build source: ${_displayId(revisionId)}'),
+                ),
                 const SizedBox(height: 12),
                 const Text(
                   'Inspection requests and live detection will pause while the device exports, builds, and validates the model. The current model is restored after the build.',
@@ -1348,7 +1381,7 @@ class _ReferenceImagesScreenState extends State<ReferenceImagesScreen> {
     if (!mounted || session != _modelPollSession) return;
     if (build.state == ModelBuildState.succeeded) {
       _showMessage(
-        'Candidate model ${build.candidateModelId} was built. It is not active.',
+        'Build completed for ${_displayId(build.referenceRevisionId)}. The candidate model is not active.',
       );
     } else if (build.state.isFinal) {
       _showMessage(
@@ -1384,8 +1417,8 @@ class _ReferenceImagesScreenState extends State<ReferenceImagesScreen> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Current: $current'),
-                Text('Requested: ${model.modelId}'),
+                Text('Current: ${_modelLabel(current)}'),
+                Text('Requested: ${_modelLabel(model.modelId)}'),
                 const SizedBox(height: 12),
                 const Text(
                   'Technical validation does not certify production accuracy. Activation pauses inspection, and a load failure may roll back to the current model.',
@@ -1513,10 +1546,10 @@ class _ReferenceImagesScreenState extends State<ReferenceImagesScreen> {
     }
     if (!mounted || session != _modelPollSession) return;
     if (activation.state == ModelActivationState.succeeded) {
-      _showMessage('Model ${activation.activeModelId} is now active.');
+      _showMessage('${_modelLabel(activation.activeModelId)} is now active.');
     } else if (activation.state == ModelActivationState.rolledBack) {
       _showMessage(
-        'Activation failed and ${activation.activeModelId} was restored.',
+        'Activation failed and ${_modelLabel(activation.activeModelId)} was restored.',
         error: true,
       );
     } else if (activation.state.isFinal) {
@@ -1532,6 +1565,23 @@ class _ReferenceImagesScreenState extends State<ReferenceImagesScreen> {
       );
     }
     await _reload();
+  }
+
+  String _modelLabel(String id) {
+    final model = _models.where((model) => model.modelId == id).firstOrNull;
+    return model == null
+        ? _displayId(id)
+        : '${_displayId(id)} · ${_displayId(model.referenceRevisionId)}';
+  }
+
+  String _displayId(String id) {
+    final match = RegExp(
+      r'^(model|refrev)_([0-9a-f]{32}|initial)$',
+    ).firstMatch(id);
+    if (match == null) return id;
+    final kind = match[1] == 'model' ? 'Model' : 'Revision';
+    final suffix = match[2]!;
+    return '$kind ${suffix == 'initial' ? suffix : suffix.substring(0, 8)}';
   }
 
   void _showMessage(String message, {bool error = false}) {
@@ -1673,46 +1723,53 @@ class _ReferenceBoxEditorState extends State<ReferenceBoxEditor> {
           widget.imageWidth * scale,
           widget.imageHeight * scale,
         );
-        return Center(
-          child: SizedBox.fromSize(
-            size: displaySize,
-            child: GestureDetector(
-              behavior: HitTestBehavior.opaque,
-              onPanStart: widget.boxes.length >= 64
-                  ? null
-                  : (details) {
-                      setState(() {
-                        _dragStart = _clamp(details.localPosition, displaySize);
-                        _dragCurrent = _dragStart;
-                      });
-                    },
-              onPanUpdate: widget.boxes.length >= 64
-                  ? null
-                  : (details) => setState(
-                      () => _dragCurrent = _clamp(
-                        details.localPosition,
-                        displaySize,
+        return ZoomableViewport(
+          editable: true,
+          child: Center(
+            child: SizedBox.fromSize(
+              size: displaySize,
+              child: GestureDetector(
+                dragStartBehavior: DragStartBehavior.down,
+                behavior: HitTestBehavior.opaque,
+                onPanStart: widget.boxes.length >= 64
+                    ? null
+                    : (details) {
+                        setState(() {
+                          _dragStart = _clamp(
+                            details.localPosition,
+                            displaySize,
+                          );
+                          _dragCurrent = _dragStart;
+                        });
+                      },
+                onPanUpdate: widget.boxes.length >= 64
+                    ? null
+                    : (details) => setState(
+                        () => _dragCurrent = _clamp(
+                          details.localPosition,
+                          displaySize,
+                        ),
+                      ),
+                onPanCancel: _cancelDrag,
+                onPanEnd: (_) => _finishDrag(scale),
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    Image.memory(
+                      widget.imageBytes,
+                      fit: BoxFit.fill,
+                      gaplessPlayback: true,
+                      filterQuality: FilterQuality.medium,
+                    ),
+                    CustomPaint(
+                      painter: _ReferenceBoxesPainter(
+                        boxes: widget.boxes,
+                        scale: scale,
+                        pending: _pendingRect,
                       ),
                     ),
-              onPanCancel: _cancelDrag,
-              onPanEnd: (_) => _finishDrag(scale),
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  Image.memory(
-                    widget.imageBytes,
-                    fit: BoxFit.fill,
-                    gaplessPlayback: true,
-                    filterQuality: FilterQuality.medium,
-                  ),
-                  CustomPaint(
-                    painter: _ReferenceBoxesPainter(
-                      boxes: widget.boxes,
-                      scale: scale,
-                      pending: _pendingRect,
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
