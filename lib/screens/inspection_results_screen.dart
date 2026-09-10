@@ -8,23 +8,7 @@ import 'package:provider/provider.dart';
 import '../providers/settings_provider.dart';
 import '../services/remote_capture_api_service.dart';
 import '../widgets/station_inspection_image.dart';
-
-List<StationCaptureResult> mergeStationResultArchive(
-  Iterable<StationCaptureResult> retained,
-  Iterable<StationCaptureResult> fetched,
-) {
-  final byCycleId = <String, StationCaptureResult>{
-    for (final result in retained)
-      if (result.state.isFinal) result.cycleId: result,
-  };
-  for (final result in fetched) {
-    byCycleId[result.cycleId] = result;
-  }
-  return byCycleId.values.toList(growable: false)..sort(
-    (left, right) =>
-        (right.requestedAtMs ?? 0).compareTo(left.requestedAtMs ?? 0),
-  );
-}
+import '../widgets/capture_storage_summary.dart';
 
 class InspectionResultsScreen extends StatefulWidget {
   const InspectionResultsScreen({super.key, this.api});
@@ -43,12 +27,14 @@ class _InspectionResultsScreenState extends State<InspectionResultsScreen> {
   int _imageRefresh = 0;
   String? _selectedInspectionId;
   final List<StationCaptureResult> _results = [];
-  Timer? _pollTimer;
+  StationArchiveDates? _archive;
+  String? _selectedDate;
+  String? _nextCursor;
+  bool _loadingMore = false;
   String? _selectedCycleId;
   String? _error;
   DateTime? _lastUpdatedAt;
   bool _loading = true;
-  bool _pollInFlight = false;
 
   @override
   void initState() {
@@ -57,10 +43,6 @@ class _InspectionResultsScreenState extends State<InspectionResultsScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       unawaited(_refresh());
-      _pollTimer = Timer.periodic(
-        const Duration(seconds: 1),
-        (_) => unawaited(_refresh()),
-      );
     });
   }
 
@@ -70,11 +52,14 @@ class _InspectionResultsScreenState extends State<InspectionResultsScreen> {
     final endpoint = context
         .watch<SettingsProvider>()
         .settings
-        .buildApiUri('capture/results')
+        .buildApiUri('capture/archive')
         .toString();
     if (_endpoint != null && _endpoint != endpoint) {
       _requestGeneration++;
-      _pollInFlight = false;
+      _archive = null;
+      _selectedDate = null;
+      _nextCursor = null;
+      _loadingMore = false;
       _results.clear();
       _selectedCycleId = null;
       _selectedInspectionId = null;
@@ -88,40 +73,107 @@ class _InspectionResultsScreenState extends State<InspectionResultsScreen> {
 
   @override
   void dispose() {
-    _pollTimer?.cancel();
     if (widget.api == null) _api.close();
     super.dispose();
   }
 
-  Future<void> _refresh() async {
-    if (_pollInFlight || !mounted) return;
-    _pollInFlight = true;
-    final generation = _requestGeneration;
+  String _archiveError(Object error) =>
+      error is RemoteCaptureApiException && error.statusCode == 404
+      ? '날짜별 검사 기록 API를 찾을 수 없어. Inspect 서버 업데이트와 저장 폴더를 확인해.\n${error.message}'
+      : '저장된 검사 기록 조회 실패: $error';
+
+  Future<void> _refresh({bool latest = false}) async {
+    final generation = ++_requestGeneration;
     final settings = context.read<SettingsProvider>().settings;
-    List<StationCaptureResult>? nextResults;
-    String? nextError;
-    try {
-      nextResults = (await _api.fetchStationResults(settings)).results;
-    } catch (error) {
-      nextError = '검사 결과 조회 실패: $error';
-    } finally {
-      if (generation == _requestGeneration) _pollInFlight = false;
-    }
-    if (!mounted || generation != _requestGeneration) return;
     setState(() {
-      if (nextResults != null) {
-        final merged = mergeStationResultArchive(_results, nextResults);
+      _loading = true;
+      _loadingMore = false;
+      _error = null;
+    });
+    try {
+      final archive = await _api.fetchStationArchiveDates(settings);
+      if (!mounted || generation != _requestGeneration) return;
+      final date =
+          !latest && archive.dates.any((item) => item.date == _selectedDate)
+          ? _selectedDate
+          : archive.dates.firstOrNull?.date;
+      final page = date == null
+          ? null
+          : await _api.fetchStationArchive(settings, date: date);
+      if (!mounted || generation != _requestGeneration) return;
+      setState(() {
+        _archive = archive;
+        _selectedDate = date;
         _results
           ..clear()
-          ..addAll(merged);
-        if (!_results.any((result) => result.cycleId == _selectedCycleId)) {
-          _selectedCycleId = _results.isEmpty ? null : _results.first.cycleId;
+          ..addAll(page?.results ?? []);
+        _nextCursor = page?.nextCursor;
+        if (latest ||
+            !_results.any((result) => result.cycleId == _selectedCycleId)) {
+          _selectedCycleId = _results.firstOrNull?.cycleId;
+          _selectedInspectionId = null;
         }
         _lastUpdatedAt = DateTime.now();
+        _imageRefresh++;
+      });
+    } catch (error) {
+      if (mounted && generation == _requestGeneration) {
+        setState(() => _error = _archiveError(error));
       }
-      _error = nextError;
-      _loading = false;
+    } finally {
+      if (mounted && generation == _requestGeneration) {
+        setState(() => _loading = false);
+      }
+    }
+  }
+
+  Future<void> _loadDate(String date, {bool more = false}) async {
+    final generation = ++_requestGeneration;
+    final cursor = more ? _nextCursor : null;
+    final settings = context.read<SettingsProvider>().settings;
+    setState(() {
+      _error = null;
+      _loadingMore = more;
+      _loading = !more;
+      _selectedDate = date;
+      if (!more) {
+        _results.clear();
+        _selectedCycleId = null;
+        _selectedInspectionId = null;
+        _nextCursor = null;
+      }
     });
+    try {
+      final page = await _api.fetchStationArchive(
+        settings,
+        date: date,
+        cursor: cursor,
+      );
+      if (!mounted || generation != _requestGeneration) return;
+      if (page.nextCursor != null && page.nextCursor == cursor) {
+        throw const FormatException('페이지 커서가 진행되지 않았어');
+      }
+      setState(() {
+        final ids = _results.map((result) => result.cycleId).toSet();
+        _results.addAll(
+          page.results.where((result) => ids.add(result.cycleId)),
+        );
+        _nextCursor = page.nextCursor;
+        _selectedCycleId ??= _results.firstOrNull?.cycleId;
+        _lastUpdatedAt = DateTime.now();
+      });
+    } catch (error) {
+      if (mounted && generation == _requestGeneration) {
+        setState(() => _error = _archiveError(error));
+      }
+    } finally {
+      if (mounted && generation == _requestGeneration) {
+        setState(() {
+          _loading = false;
+          _loadingMore = false;
+        });
+      }
+    }
   }
 
   @override
@@ -145,31 +197,30 @@ class _InspectionResultsScreenState extends State<InspectionResultsScreen> {
             ),
           ),
         Expanded(
-          child: _loading && _results.isEmpty
-              ? const Center(child: CircularProgressIndicator())
-              : _results.isEmpty
-              ? const _EmptyResults()
-              : LayoutBuilder(
-                  builder: (context, constraints) {
-                    if (constraints.maxWidth < 760) {
-                      return Column(
-                        children: [
-                          SizedBox(height: 230, child: _buildResultList()),
-                          const Divider(height: 1),
-                          Expanded(child: _buildResultDetails(selected)),
-                        ],
-                      );
-                    }
-                    return Row(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        SizedBox(width: 340, child: _buildResultList()),
-                        const VerticalDivider(width: 1),
-                        Expanded(child: _buildResultDetails(selected)),
-                      ],
-                    );
-                  },
-                ),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              if (constraints.maxWidth < 760) {
+                return Column(
+                  children: [
+                    SizedBox(
+                      height: 230,
+                      child: _buildBrowserPanel(compact: true),
+                    ),
+                    const Divider(height: 1),
+                    Expanded(child: _buildResultDetails(selected)),
+                  ],
+                );
+              }
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  SizedBox(width: 320, child: _buildBrowserPanel()),
+                  const VerticalDivider(width: 1),
+                  Expanded(child: _buildResultDetails(selected)),
+                ],
+              );
+            },
+          ),
         ),
       ],
     );
@@ -205,23 +256,90 @@ class _InspectionResultsScreenState extends State<InspectionResultsScreen> {
             ),
           ),
           IconButton(
+            tooltip: '최신 결과',
+            icon: const Icon(Icons.skip_next_outlined),
+            onPressed: _loading || _loadingMore
+                ? null
+                : () => unawaited(_refresh(latest: true)),
+          ),
+          IconButton(
             tooltip: '새로고침',
             icon: const Icon(Icons.refresh),
-            onPressed: _pollInFlight
+            onPressed: _loading || _loadingMore
                 ? null
-                : () {
-                    setState(() => _imageRefresh++);
-                    unawaited(_refresh());
-                  },
+                : () => unawaited(_refresh()),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildResultList() {
+  Widget _buildBrowserPanel({bool compact = false}) {
+    final archive = _archive;
+    return ColoredBox(
+      color: Theme.of(context).colorScheme.surface,
+      child: Column(
+        children: [
+          if (archive != null)
+            CaptureStorageSummary(
+              storage: archive.storage,
+              compact: compact,
+              summary:
+                  '검사 데이터 ${formatStorageBytes(archive.storage.captureBytes)} · ${archive.resultCount}건',
+            ),
+          if (archive != null && archive.dates.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+              child: DropdownButtonFormField<String>(
+                key: ValueKey('archive-date-$_selectedDate'),
+                initialValue: _selectedDate,
+                decoration: const InputDecoration(
+                  labelText: '날짜',
+                  border: OutlineInputBorder(),
+                  isDense: true,
+                ),
+                items: [
+                  for (final date in archive.dates)
+                    DropdownMenuItem(
+                      value: date.date,
+                      child: Text('${date.date} (${date.count})'),
+                    ),
+                ],
+                onChanged: (date) {
+                  if (date != null) unawaited(_loadDate(date));
+                },
+              ),
+            ),
+          const Divider(height: 1),
+          Expanded(
+            child: _loading
+                ? const Center(child: CircularProgressIndicator())
+                : _results.isEmpty
+                ? const Center(child: Text('저장된 검사 결과가 없어'))
+                : _buildResultList(compact: compact),
+          ),
+          if (_nextCursor != null)
+            TextButton.icon(
+              onPressed: _loadingMore || _loading
+                  ? null
+                  : () => unawaited(_loadDate(_selectedDate!, more: true)),
+              icon: _loadingMore
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.expand_more),
+              label: Text(_loadingMore ? '불러오는 중...' : '더 보기'),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildResultList({bool compact = false}) {
     return ListView.separated(
-      padding: const EdgeInsets.all(12),
+      padding: EdgeInsets.all(compact ? 8 : 12),
       itemCount: _results.length,
       separatorBuilder: (_, _) => const SizedBox(height: 8),
       itemBuilder: (context, index) {
@@ -239,7 +357,7 @@ class _InspectionResultsScreenState extends State<InspectionResultsScreen> {
               _selectedInspectionId = null;
             }),
             child: Container(
-              padding: const EdgeInsets.all(12),
+              padding: EdgeInsets.all(compact ? 8 : 12),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
@@ -263,6 +381,14 @@ class _InspectionResultsScreenState extends State<InspectionResultsScreen> {
                       _statusChip(result.presentationStatus),
                     ],
                   ),
+                  if (result.rawJson['size_bytes'] is int)
+                    Text(
+                      formatStorageBytes(result.rawJson['size_bytes'] as int),
+                      style: const TextStyle(
+                        color: Colors.white60,
+                        fontSize: 12,
+                      ),
+                    ),
                   const SizedBox(height: 7),
                   Text(
                     [
@@ -377,6 +503,7 @@ class _InspectionResultsScreenState extends State<InspectionResultsScreen> {
               result: result,
               inspection: selected,
               api: _api,
+              archived: true,
             ),
             const SizedBox(height: 14),
             _buildInspectionDetails(selected),
@@ -564,26 +691,6 @@ class _InspectionResultsScreenState extends State<InspectionResultsScreen> {
   String _formatClock(DateTime value) {
     String two(int part) => part.toString().padLeft(2, '0');
     return '${two(value.hour)}:${two(value.minute)}:${two(value.second)}';
-  }
-}
-
-class _EmptyResults extends StatelessWidget {
-  const _EmptyResults();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.inbox_outlined, size: 52, color: Colors.white38),
-          SizedBox(height: 12),
-          Text('아직 검사 결과가 없어'),
-          SizedBox(height: 5),
-          Text('뷰어에서 촬영하면 결과가 표시돼.', style: TextStyle(color: Colors.white54)),
-        ],
-      ),
-    );
   }
 }
 

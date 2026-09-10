@@ -9,6 +9,7 @@ import 'package:catcheye_studio/models/app_settings.dart';
 import 'package:catcheye_studio/providers/settings_provider.dart';
 import 'package:catcheye_studio/screens/inspection_results_screen.dart';
 import 'package:catcheye_studio/services/remote_capture_api_service.dart';
+import 'package:catcheye_studio/services/remote_capture_image_api_service.dart';
 import 'package:catcheye_studio/widgets/station_inspection_image.dart';
 
 StationCaptureResult result(String id, {bool saved = true}) =>
@@ -107,6 +108,60 @@ void main() {
   }
 
   testWidgets(
+    'archive browser shows capacity, date counts, pagination and latest selection',
+    (tester) async {
+      final api = _BrowserApi();
+      await _mount(tester, api);
+      expect(find.text('저장 공간'), findsOneWidget);
+      expect(find.text('60% 사용 중'), findsOneWidget);
+      expect(find.textContaining('검사 데이터'), findsOneWidget);
+      expect(find.text('2026-09-10 (2)'), findsOneWidget);
+      await tester.tap(find.text('더 보기'));
+      await tester.pumpAndSettle();
+      expect(api.pages.last, '2026-09-10/next');
+      expect(find.text('더 보기'), findsNothing);
+      await tester.tap(find.byType(DropdownButtonFormField<String>));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('2026-09-09 (1)').last);
+      await tester.pumpAndSettle();
+      expect(api.pages.last, '2026-09-09/');
+      expect(api.images.last, '100-100-1/stud/overlay');
+      expect(api.savedPaths.last, 'bolt_stud/2026-09-09/100-100-1');
+      await tester.tap(find.byTooltip('최신 결과'));
+      await tester.pumpAndSettle();
+      expect(api.images.last, '200-200-2/stud/overlay');
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets('late date response cannot replace the newly selected date', (
+    tester,
+  ) async {
+    final api = _BrowserApi();
+    await _mount(tester, api);
+    api.delayedDate = Completer<StationArchivePage>();
+    tester
+        .widget<DropdownButtonFormField<String>>(
+          find.byType(DropdownButtonFormField<String>),
+        )
+        .onChanged!('2026-09-09');
+    await tester.pump();
+    tester
+        .widget<DropdownButtonFormField<String>>(
+          find.byType(DropdownButtonFormField<String>),
+        )
+        .onChanged!('2026-09-10');
+    await tester.pumpAndSettle();
+    api.delayedDate!.complete(
+      StationArchivePage(date: '2026-09-09', results: [result('100-100-1')]),
+    );
+    await tester.pumpAndSettle();
+    expect(api.images.last, '200-200-2/stud/overlay');
+    expect(find.text('2026-09-10 (2)'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets(
     'missing image endpoint is explicit and never requests live capture',
     (tester) async {
       final api = _Api()..imageFailure = true;
@@ -192,20 +247,42 @@ void main() {
 class _Api extends RemoteCaptureApiService {
   List<StationCaptureResult> records = [result('cycle_one')];
   final images = <String>[];
+  final savedPaths = <String?>[];
   bool imageFailure = false;
   Completer<Uint8List>? delayed;
   @override
-  Future<StationCaptureResultList> fetchStationResults(
+  Future<StationArchiveDates> fetchStationArchiveDates(
     AppSettings settings,
-  ) async => StationCaptureResultList(results: records);
+  ) async => StationArchiveDates(
+    storage: const CaptureStorageInfo(
+      path: '/outputs',
+      totalBytes: 10000000,
+      availableBytes: 4000000,
+      usedBytes: 6000000,
+      usedPercent: 60,
+      captureBytes: 10000,
+      captureCount: 4,
+    ),
+    resultCount: records.length,
+    dates: [CaptureDateSummary(date: '2026-09-10', count: records.length)],
+  );
+  @override
+  Future<StationArchivePage> fetchStationArchive(
+    AppSettings settings, {
+    required String date,
+    int limit = 100,
+    String? cursor,
+  }) async => StationArchivePage(date: date, results: records);
   @override
   Future<Uint8List> fetchStationImage(
     AppSettings settings, {
     required String cycleId,
     required String inspectionId,
     required String kind,
+    String? storagePath,
   }) async {
     images.add('$cycleId/$inspectionId/$kind');
+    savedPaths.add(storagePath);
     if (imageFailure) {
       throw RemoteCaptureApiException(
         method: 'GET',
@@ -228,4 +305,49 @@ class _Api extends RemoteCaptureApiService {
   @override
   Future<StationViewerSource> fetchViewerSource(AppSettings settings) =>
       throw StateError('Results must never use preview');
+}
+
+class _BrowserApi extends _Api {
+  final pages = <String>[];
+  Completer<StationArchivePage>? delayedDate;
+  @override
+  Future<StationArchiveDates> fetchStationArchiveDates(
+    AppSettings settings,
+  ) async {
+    final original = await super.fetchStationArchiveDates(settings);
+    return StationArchiveDates(
+      storage: original.storage,
+      resultCount: 3,
+      dates: const [
+        CaptureDateSummary(date: '2026-09-10', count: 2),
+        CaptureDateSummary(date: '2026-09-09', count: 1),
+      ],
+    );
+  }
+
+  @override
+  Future<StationArchivePage> fetchStationArchive(
+    AppSettings settings, {
+    required String date,
+    int limit = 100,
+    String? cursor,
+  }) async {
+    pages.add('$date/${cursor ?? ''}');
+    if (date == '2026-09-09' && delayedDate != null) return delayedDate!.future;
+    final id = date == '2026-09-09'
+        ? '100-100-1'
+        : cursor == null
+        ? '200-200-2'
+        : '200-200-1';
+    final saved = StationCaptureResult.fromJson({
+      ...result(id).rawJson,
+      'storage_path': 'bolt_stud/$date/$id',
+      'size_bytes': 1200,
+    });
+    return StationArchivePage(
+      date: date,
+      results: [saved],
+      nextCursor: date == '2026-09-10' && cursor == null ? 'next' : null,
+    );
+  }
 }

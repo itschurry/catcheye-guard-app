@@ -4,6 +4,7 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import '../models/app_settings.dart';
+import 'remote_capture_image_api_service.dart';
 
 class RemoteCaptureApiException implements Exception {
   final String method;
@@ -499,6 +500,87 @@ class StationCaptureResultList {
   }
 }
 
+class StationArchiveDates {
+  const StationArchiveDates({
+    required this.storage,
+    required this.resultCount,
+    required this.dates,
+  });
+  final CaptureStorageInfo storage;
+  final int resultCount;
+  final List<CaptureDateSummary> dates;
+
+  factory StationArchiveDates.fromJson(Map<String, dynamic> json) {
+    final parsed = CaptureDatesResponse.fromJson(json);
+    if (parsed.storage == null || json['storage']['result_count'] is! int) {
+      throw const FormatException('검사 저장 공간 및 결과 개수가 필요해');
+    }
+    if (parsed.dates.any(
+          (date) => !_validArchiveDate(date.date) || date.count < 0,
+        ) ||
+        parsed.dates.map((date) => date.date).toSet().length !=
+            parsed.dates.length) {
+      throw const FormatException('검사 저장 날짜 목록이 올바르지 않아');
+    }
+    final dates = [...parsed.dates]..sort((a, b) => b.date.compareTo(a.date));
+    return StationArchiveDates(
+      storage: parsed.storage!,
+      resultCount: json['storage']['result_count'] as int,
+      dates: dates,
+    );
+  }
+}
+
+bool _validArchiveDate(String date) {
+  if (!RegExp(r'^\d{4}-\d{2}-\d{2}$').hasMatch(date)) return false;
+  final parsed = DateTime.tryParse(date);
+  return parsed != null && parsed.toIso8601String().startsWith(date);
+}
+
+class StationArchivePage {
+  const StationArchivePage({
+    required this.date,
+    required this.results,
+    this.nextCursor,
+  });
+  final String date;
+  final List<StationCaptureResult> results;
+  final String? nextCursor;
+
+  factory StationArchivePage.fromJson(Map<String, dynamic> json) {
+    final date = json['date'];
+    if (date is! String || !_validArchiveDate(date)) {
+      throw const FormatException('저장 결과 날짜가 올바르지 않아');
+    }
+    final results = StationCaptureResultList.fromJson(json).results;
+    for (final result in results) {
+      final path = result.rawJson['storage_path'];
+      final bytes = result.rawJson['size_bytes'];
+      if (path is! String ||
+          !RegExp(
+            r'^(bolt_stud|nut|all)/\d{4}-\d{2}-\d{2}/[0-9]+-[0-9]+-[0-9]+$',
+          ).hasMatch(path) ||
+          path.split('/')[1] != date ||
+          path.split('/').last != result.cycleId ||
+          bytes is! int ||
+          bytes < 0 ||
+          (result.state != StationCycleState.completed &&
+              result.state != StationCycleState.cancelled)) {
+        throw const FormatException('저장 결과 경로 또는 파일 크기가 올바르지 않아');
+      }
+    }
+    final cursor = json['next_cursor'];
+    if (cursor != null && (cursor is! String || cursor.isEmpty)) {
+      throw const FormatException('다음 페이지 커서가 올바르지 않아');
+    }
+    return StationArchivePage(
+      date: date,
+      results: results,
+      nextCursor: cursor as String?,
+    );
+  }
+}
+
 class RemoteCaptureApiService {
   RemoteCaptureApiService({
     Duration requestTimeout = const Duration(seconds: 10),
@@ -562,11 +644,45 @@ class RemoteCaptureApiService {
     return StationCaptureResultList.fromJson(json);
   }
 
+  Future<StationArchiveDates> fetchStationArchiveDates(
+    AppSettings settings,
+  ) async => StationArchiveDates.fromJson(
+    await _requestJson('GET', settings.buildApiUri('capture/archive/dates')),
+  );
+
+  Future<StationArchivePage> fetchStationArchive(
+    AppSettings settings, {
+    required String date,
+    int limit = 100,
+    String? cursor,
+  }) async {
+    if (!_validArchiveDate(date) || limit < 1 || limit > 100) {
+      throw const FormatException('날짜와 조회 개수(1~100)를 확인해');
+    }
+    final page = StationArchivePage.fromJson(
+      await _requestJson(
+        'GET',
+        settings
+            .buildApiUri('capture/archive')
+            .replace(
+              queryParameters: {
+                'date': date,
+                'limit': '$limit',
+                'cursor': ?cursor,
+              },
+            ),
+      ),
+    );
+    if (page.date != date) throw const FormatException('요청 날짜와 응답 날짜가 달라');
+    return page;
+  }
+
   Future<Uint8List> fetchStationImage(
     AppSettings settings, {
     required String cycleId,
     required String inspectionId,
     required String kind,
+    String? storagePath,
   }) async {
     final identifier = RegExp(r'^[A-Za-z0-9_.-]+$');
     if (!identifier.hasMatch(cycleId) ||
@@ -576,8 +692,20 @@ class RemoteCaptureApiService {
         'cycle_id, inspection_id와 이미지 종류(raw/overlay)가 필요해',
       );
     }
+    if (storagePath != null &&
+        (!RegExp(
+              r'^(bolt_stud|nut|all)/\d{4}-\d{2}-\d{2}/[0-9]+-[0-9]+-[0-9]+$',
+            ).hasMatch(storagePath) ||
+            storagePath.split('/').last != cycleId ||
+            !_validArchiveDate(storagePath.split('/')[1]))) {
+      throw const FormatException('저장 이미지 경로가 요청한 검사와 일치하지 않아');
+    }
     final uri = settings
-        .buildApiUri('capture/results/${Uri.encodeComponent(cycleId)}/image')
+        .buildApiUri(
+          storagePath == null
+              ? 'capture/results/${Uri.encodeComponent(cycleId)}/image'
+              : 'capture/archive/$storagePath/image',
+        )
         .replace(
           queryParameters: {'inspection_id': inspectionId, 'kind': kind},
         );

@@ -254,8 +254,8 @@ Capture happens when a queued cycle starts executing, not when its POST was acce
 Completed history is bounded (32 by default) and lost on restart; unknown/evicted IDs
 return HTTP 404. Retain the completed result in Studio after polling it. `last_result`
 can belong to another request, so it is not sufficient to correlate simultaneous callers.
-저장이 설정된 결과의 `storage_path`는 YAML `output_dir` 기준 `<분류>/<YYYY-MM-DD>/<cycle_id>` 상대 경로야. 분류는 `bolt_stud`·`nut`·`all`이고 날짜는 장비 현지 접수일이야. 개별 프로파일의 전체 요청은 해당 프로파일 분류에 저장해. 저장 비활성화 시 `storage_path`는 `null`이야. `artifacts`는 해당 사이클 디렉터리 기준 파일명이며, 결과 조회는 경로가 아니라 기존 `cycle_id`를 사용해. archive의 과거 결과는 런타임에서 다시 불러오지 않아.
-No artifact-download endpoint is implemented. `artifact_error` indicates a save
+저장이 설정된 결과의 `storage_path`는 YAML `output_dir` 기준 `<분류>/<YYYY-MM-DD>/<cycle_id>` 상대 경로야. 분류는 `bolt_stud`·`nut`·`all`이고 날짜는 장비 현지 접수일이야. 개별 프로파일의 전체 요청은 해당 프로파일 분류에 저장해. 저장 비활성화 시 `storage_path`는 `null`이야. `artifacts`는 해당 사이클 디렉터리 기준 파일명이며, 진행 중 촬영 조회는 기존 `cycle_id`를 사용해. 날짜별 저장 이미지 조회는 아래 archive API에 `storage_path`를 명시해. 별도 `archive/` 디렉터리의 이전 구조는 조회 대상이 아니야.
+Saved image downloads are available through the recent-cycle image endpoint and the explicit disk archive image endpoint described below. `artifact_error` indicates a save
 failure and forces aggregate `EQUIPMENT_ERROR`; per-inspection detection results may still exist.
 
 ### Preview source
@@ -495,3 +495,32 @@ v1 한도는 예시 촬영 256건, 예시 버전 512개, 빌드 64건, 적용 64
 **1차: 촬영 → 원본 조회 → 영역 편집 → 예시 버전 저장. 2차: 유지보수 승인 → 모델 생성·검증. 3차: 명시적 적용 → 이전 버전 복구.** 각 단계는 기능 플래그로 구분합니다. 상세 구현·배포·회귀 테스트 항목은 [구현 계획](REFERENCE_IMAGE_IMPLEMENTATION_PLAN.md)에 있습니다.
 
 현재 Inspect는 세 단계의 API를 제공합니다. Studio는 위 순서대로 연결하고, 촬영한 이미지의 실제 대상 박스는 사용자가 확인하도록 해야 합니다. 예시 관리 구현에는 검출 오버레이의 연속 WebSocket 송출 변경이 포함되지 않습니다.
+
+### 날짜별 저장 결과 조회
+
+`검사 결과` 화면은 런타임의 최근 결과 목록 대신 디스크의 저장 이력을 사용해.
+`output_dir/{bolt_stud,nut,all}/YYYY-MM-DD/<cycle_id>/result.json`이 게시된 완료·취소 기록을 조회하므로,
+장비 재시작이나 메모리 이력 제한과 관계없이 파일이 보존된 결과를 볼 수 있어.
+날짜는 장비의 현지 접수일 폴더를 그대로 사용하고, `archive/`·기준 이미지·임시 촬영 폴더는 제외해.
+
+| 메서드·경로 | 응답·용도 |
+| --- | --- |
+| `GET /api/capture/archive/dates` | 날짜 내림차순 `dates: [{date, count}]`와 `storage` |
+| `GET /api/capture/archive?date=YYYY-MM-DD&limit=100&cursor=...` | 해당 날짜의 `results`, `date`, `next_cursor` |
+| `GET /api/capture/archive/<분류>/<날짜>/<cycle_id>/image?inspection_id=<id>&kind=raw\|overlay` | 선택한 저장 결과의 PNG |
+
+`storage`는 저장장치의 `path`, `total_bytes`, `available_bytes`, `used_bytes`, `used_percent`와
+검사 데이터의 `capture_bytes`(결과 JSON+PNG 합계), `capture_count`(PNG 개수), `result_count`(검사 건수)를 반환해.
+장치 사용률은 전체 파일시스템 기준이고, 검사 데이터 합계는 위 저장 이력만 포함해.
+각 결과에는 해당 사이클의 JSON+PNG 용량인 `size_bytes`가 추가돼.
+
+목록은 접수 시각·cycle ID 내림차순이며 `limit`은 1~100, 기본 100이야.
+`next_cursor`는 불투명한 문자열이고 `null`이면 마지막 페이지야. 다음 요청에 그대로 전달해.
+잘못된 날짜·커서는 400, 비활성화된 저장은 409, 없는 저장 폴더·삭제된 이미지는 404,
+손상된 결과·안전하게 읽을 수 없는 파일은 오류로 반환해. 심볼릭 링크는 따라가지 않아.
+이미지는 카메라를 다시 촬영하지 않고 `storage_path`와 `inspection_id`·`kind`로 명시한 저장 파일만 읽어.
+
+Studio는 최초 진입·날짜 선택·새로고침·최신 결과·더 보기에서 조회해. 매초 저장 폴더를 스캔하지 않아.
+삭제된 기록을 클라이언트에 누적 보관하지 않으며 새로고침 때 서버 목록으로 교체해.
+구버전 서버의 API 미지원은 오류로 표시하고 최근 결과 API로 자동 전환하지 않아.
+뷰어의 진행 중 촬영 폴링은 기존 `/api/capture/results/<cycle_id>`를 계속 사용해.

@@ -13,10 +13,12 @@ class StationInspectionImage extends StatefulWidget {
     required this.result,
     required this.inspection,
     required this.api,
+    this.archived = false,
   });
   final StationCaptureResult result;
   final StationInspectionResult inspection;
   final RemoteCaptureApiService api;
+  final bool archived;
 
   @override
   State<StationInspectionImage> createState() => _StationInspectionImageState();
@@ -65,7 +67,7 @@ class _StationInspectionImageState extends State<StationInspectionImage> {
       _loading = true;
     });
     try {
-      if (widget.result.state != StationCycleState.completed) {
+      if (!widget.result.state.isFinal) {
         throw StateError('완료된 검사의 이미지가 아직 없어.');
       }
       if (!widget.inspection.artifacts.containsKey(_kind)) {
@@ -75,11 +77,16 @@ class _StationInspectionImageState extends State<StationInspectionImage> {
               : '이 검사의 ${_kind == 'overlay' ? '검출 결과' : '원본'} 이미지가 저장되지 않았어. Inspect 저장 설정과 검사 오류를 확인해.',
         );
       }
+      final storagePath = widget.result.rawJson['storage_path'];
+      if (widget.archived && (storagePath is! String || storagePath.isEmpty)) {
+        throw StateError('저장된 검사 이미지 경로가 없어.');
+      }
       final bytes = await widget.api.fetchStationImage(
         context.read<SettingsProvider>().settings,
         cycleId: widget.result.cycleId,
         inspectionId: widget.inspection.inspectionId,
         kind: _kind,
+        storagePath: widget.archived ? storagePath as String : null,
       );
       if (!mounted || session != _session) return;
       setState(() => _bytes = bytes);

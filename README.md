@@ -130,7 +130,7 @@ flutter test
 | ROI 편집 | HSS / Pick | Person 또는 Pallet ROI 편집 |
 | 카메라 설정 | HSS / Capture | 카메라 runtime property 조절 |
 | 카메라 위치 | Pick | 카메라 intrinsic과 로봇 base 기준 extrinsic 위치 관계 조회 |
-| 검사 결과 | Inspection | 최근 촬영 cycle의 저장 이미지, 검사별 판정·점검 안내, 측정값과 원본 JSON 조회 |
+| 검사 결과 | Inspection | 날짜별 저장 결과·용량, 검사 이미지, 검사별 판정·점검 안내, 측정값과 원본 JSON 조회 |
 | 기준 이미지 | Inspection | 원본 예시 촬영·박스 편집·리비전 저장, 모델 빌드·검증·명시적 적용·이전 모델 복구 |
 
 Pick 연결에서는 `뷰어`, `ROI 편집`, `카메라 위치`만 보여준다.
@@ -210,21 +210,52 @@ ID이며 뒤따르는 JPEG binary frame은 `payload_index` 순서로 매칭된�
 미리보기는 카메라의 보정 ON/OFF 설정이 적용된 영상이며 Capture 결과와 연결하지 않는다. Capture 결과는
 cycle ID로 별도 폴링하여 뷰어 상단 결과 행에 표시한다.
 
-Inspect의 결과 파일은 `outputs/{bolt_stud,nut,all}/YYYY-MM-DD/<cycle_id>/`에 저장돼. 결과 JSON의 `storage_path`는 저장 루트 기준 상대 경로이고, Studio의 조회는 계속 `cycle_id`를 사용해. 기존 archive 파일을 결과 API에서 다시 불러오지는 않아.
+### 날짜별 저장 결과 조회
 
-Inspection의 `검사 결과` 탭은 `GET /api/capture/results`에서 runtime이 보존한
-최근 cycle을 조회한다. Studio가 조회한 완료 cycle은 실행 중 자체 보관하며,
-runtime 재시작이나 서버 이력 제한으로 응답 목록에서 빠져도 제거하지 않는다.
-`last_result`는 다른 요청 결과일 수 있으므로 결과 목록의 대체값으로 사용하지
-않는다.
+`검사 결과` 화면은 런타임의 최근 결과 목록 대신 디스크의 저장 이력을 사용해.
+`output_dir/{bolt_stud,nut,all}/YYYY-MM-DD/<cycle_id>/result.json`이 게시된 완료·취소 기록을 조회하므로,
+장비 재시작이나 메모리 이력 제한과 관계없이 파일이 보존된 결과를 볼 수 있어.
+날짜는 장비의 현지 접수일 폴더를 그대로 사용하고, `archive/`·기준 이미지·임시 촬영 폴더는 제외해.
 
-`검사 결과`는 촬영 시각과 전체 판정 원인을 표시하고 NG·미검출 부위를 먼저 선택한다.
-부위 버튼으로 대상을 바꾸고 `검출 결과` / `원본`으로 검사 당시 저장된 PNG를 비교한다.
-이미지는 `GET /api/capture/results/<cycle_id>/image?inspection_id=<id>&kind=overlay|raw`로 읽으며,
-실시간 카메라나 다른 cycle을 사용하지 않는다. 휠·+/− 확대와 드래그 이동을 지원한다.
-판정 이유·점검 항목·형상 측정값과 기준을 이미지 아래에 표시하고 전체 ID·JSON은 상세에서 펼친다.
-Inspect에 이미지 조회 API를 적용해야 하며 기존 이력도 runtime에 남아 있고 파일이 보존돼 있으면 조회할 수 있다.
-저장 비활성화·파일 삭제·이력 만료·API 미지원은 이미지 오류로 표시한다. 연결 장비를 바꾸면 이전 장비 이력은 비운다.
+| 메서드·경로 | 응답·용도 |
+| --- | --- |
+| `GET /api/capture/archive/dates` | 날짜 내림차순 `dates: [{date, count}]`와 `storage` |
+| `GET /api/capture/archive?date=YYYY-MM-DD&limit=100&cursor=...` | 해당 날짜의 `results`, `date`, `next_cursor` |
+| `GET /api/capture/archive/<분류>/<날짜>/<cycle_id>/image?inspection_id=<id>&kind=raw\|overlay` | 선택한 저장 결과의 PNG |
+
+`storage`는 저장장치의 `path`, `total_bytes`, `available_bytes`, `used_bytes`, `used_percent`와
+검사 데이터의 `capture_bytes`(결과 JSON+PNG 합계), `capture_count`(PNG 개수), `result_count`(검사 건수)를 반환해.
+장치 사용률은 전체 파일시스템 기준이고, 검사 데이터 합계는 위 저장 이력만 포함해.
+각 결과에는 해당 사이클의 JSON+PNG 용량인 `size_bytes`가 추가돼.
+
+목록은 접수 시각·cycle ID 내림차순이며 `limit`은 1~100, 기본 100이야.
+`next_cursor`는 불투명한 문자열이고 `null`이면 마지막 페이지야. 다음 요청에 그대로 전달해.
+잘못된 날짜·커서는 400, 비활성화된 저장은 409, 없는 저장 폴더·삭제된 이미지는 404,
+손상된 결과·안전하게 읽을 수 없는 파일은 오류로 반환해. 심볼릭 링크는 따라가지 않아.
+이미지는 카메라를 다시 촬영하지 않고 `storage_path`와 `inspection_id`·`kind`로 명시한 저장 파일만 읽어.
+
+Studio는 최초 진입·날짜 선택·새로고침·최신 결과·더 보기에서 조회해. 매초 저장 폴더를 스캔하지 않아.
+삭제된 기록을 클라이언트에 누적 보관하지 않으며 새로고침 때 서버 목록으로 교체해.
+구버전 서버의 API 미지원은 오류로 표시하고 최근 결과 API로 자동 전환하지 않아.
+뷰어의 진행 중 촬영 폴링은 기존 `/api/capture/results/<cycle_id>`를 계속 사용해.
+
+저장 이력 조회 예시:
+
+```bash
+curl --fail http://127.0.0.1:8090/api/capture/archive/dates
+curl --fail --get http://127.0.0.1:8090/api/capture/archive \
+  --data-urlencode 'date=2026-09-10' --data-urlencode 'limit=100'
+```
+
+
+`검사 결과`는 Capture의 저장 이미지 화면과 같은 용량 카드·날짜 선택·결과 목록을 사용해.
+각 날짜의 건수와 사이클별 용량을 표시하고, `최신 결과`로 최신 날짜의 첫 결과를 열어.
+부위 버튼과 `검출 결과` / `원본`으로 저장된 PNG를 비교하고 휠·+/− 확대와 드래그 이동을 지원해.
+판정 이유·점검 항목·형상 측정값은 이미지 아래에서 확인하고 전체 ID·JSON은 상세에서 펼쳐.
+모바일에서는 용량·날짜·목록을 위에, 이미지를 아래에 배치해. 다른 날짜·장비로 전환하면 이전 응답을 버려.
+이 기능을 사용하려면 Studio와 Inspect 서버를 함께 업데이트해야 해.
+Inspect는 빌드 서버에서 빌드·검증한 `install/arm64/release/` 폴더를 실행 장비로 복사해서 적용해.
+실행 장비에서는 Inspect 소스나 개발 Docker 환경을 빌드하지 않아. 기존 설정과 저장된 결과는 보존해.
 
 예시 관리 옵션이 설치된 장비는 Viewer의 방패 아이콘에서 전달받은 관리
 토큰을 등록한다. Studio는 인증된 `GET /api/reference/status` 기능 플래그를

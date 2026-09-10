@@ -9,7 +9,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:catcheye_studio/models/app_settings.dart';
 import 'package:catcheye_studio/models/station_viewer_layout.dart';
 import 'package:catcheye_studio/providers/settings_provider.dart';
-import 'package:catcheye_studio/screens/inspection_results_screen.dart';
 import 'package:catcheye_studio/services/remote_capture_api_service.dart';
 import 'package:catcheye_studio/services/frame_receiver_service.dart';
 import 'package:catcheye_studio/services/remote_reference_api_service.dart';
@@ -314,32 +313,6 @@ void main() {
     expect(receiver.streams.containsKey('camera'), isFalse);
     expect(receiver.streams['camera_b']!.payloadBytes, const [2]);
   });
-
-  test(
-    'station result archive retains completed results missing from server',
-    () {
-      final retained = StationCaptureResult.fromJson(const {
-        'cycle_id': 'completed-before-restart',
-        'state': 'COMPLETED',
-        'status': 'OK',
-        'requested_at_ms': 100,
-        'inspection_ids': [],
-        'inspections': {},
-      });
-      final running = StationCaptureResult.fromJson(const {
-        'cycle_id': 'running-before-restart',
-        'state': 'RUNNING',
-        'requested_at_ms': 200,
-        'inspection_ids': [],
-      });
-
-      final merged = mergeStationResultArchive([retained, running], const []);
-
-      expect(merged.map((result) => result.cycleId), [
-        'completed-before-restart',
-      ]);
-    },
-  );
 
   test('station result list parses retained cycles', () {
     final list = StationCaptureResultList.fromJson(const {

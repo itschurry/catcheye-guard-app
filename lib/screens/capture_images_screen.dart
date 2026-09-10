@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../providers/settings_provider.dart';
+import '../widgets/capture_storage_summary.dart';
 import '../services/remote_capture_api_service.dart';
 import '../services/remote_capture_image_api_service.dart';
 
@@ -202,7 +203,7 @@ class _CaptureImagesScreenState extends State<CaptureImagesScreen> {
         children: [
           _storage == null
               ? const _StorageUnavailableSummary()
-              : _buildStorageSummary(_storage!),
+              : CaptureStorageSummary(storage: _storage!),
           if (_dates.isNotEmpty)
             Padding(
               padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
@@ -263,62 +264,6 @@ class _CaptureImagesScreenState extends State<CaptureImagesScreen> {
                   ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildStorageSummary(CaptureStorageInfo storage) {
-    final usedRatio = (storage.usedPercent / 100.0).clamp(0.0, 1.0).toDouble();
-    return Padding(
-      padding: const EdgeInsets.all(12),
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: const Color(0xFF303030),
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: const Color(0xFF4A4A4A)),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const Text(
-              '저장 공간',
-              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800),
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    '여유 ${_formatBytes(storage.availableBytes)} / 전체 ${_formatBytes(storage.totalBytes)}',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontSize: 12),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  '${storage.usedPercent.round()}% 사용 중',
-                  maxLines: 1,
-                  style: const TextStyle(fontSize: 12, color: Colors.grey),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            LinearProgressIndicator(
-              value: usedRatio,
-              minHeight: 6,
-              borderRadius: BorderRadius.circular(999),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              '이미지 ${_formatBytes(storage.captureBytes)} · ${storage.captureCount}개',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontSize: 12, color: Colors.grey),
-            ),
-          ],
-        ),
       ),
     );
   }
