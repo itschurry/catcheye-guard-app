@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:provider/provider.dart';
@@ -13,7 +14,13 @@ import 'package:catcheye_studio/services/reference_credential_store.dart';
 import 'package:catcheye_studio/services/remote_reference_api_service.dart';
 
 void main() {
-  setUpAll(MediaKit.ensureInitialized);
+  setUpAll(() async {
+    MediaKit.ensureInitialized();
+    await (FontLoader('NotoSansKR')
+          ..addFont(rootBundle.load('assets/fonts/NotoSansCJKkr-Regular.otf'))
+          ..addFont(rootBundle.load('assets/fonts/NotoSansCJKkr-Bold.otf')))
+        .load();
+  });
 
   testWidgets('reference screen shows revision examples and model review', (
     tester,
@@ -40,7 +47,11 @@ void main() {
           ),
         ],
         child: MaterialApp(
-          theme: ThemeData.dark(useMaterial3: true),
+          theme: ThemeData(
+            brightness: Brightness.dark,
+            useMaterial3: true,
+            fontFamily: 'NotoSansKR',
+          ),
           home: Scaffold(
             body: ReferenceImagesScreen(
               initialStatus: _FakeReferenceApi.status,
@@ -52,21 +63,18 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.drag(find.text('Capture source'), const Offset(0, -420));
+    await tester.drag(find.text('촬영 대상'), const Offset(0, -420));
     await tester.pumpAndSettle();
-    expect(find.text('Current examples'), findsOneWidget);
+    expect(find.text('현재 기준 이미지'), findsOneWidget);
     expect(find.text('Stud (stud)'), findsOneWidget);
 
-    await tester.tap(find.text('Models'));
+    await tester.tap(find.text('모델'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Model initial'), findsWidgets);
-    expect(find.text('Technical validation passed'), findsOneWidget);
-    expect(
-      find.textContaining('Technical validation is not production quality'),
-      findsOneWidget,
-    );
-    expect(find.text('ACTIVE'), findsWidgets);
+    expect(find.text('모델 initial'), findsWidgets);
+    expect(find.text('기술 검증 통과'), findsOneWidget);
+    expect(find.textContaining('기술 검증이 생산 품질'), findsOneWidget);
+    expect(find.text('사용 중'), findsWidgets);
     expect(tester.takeException(), isNull);
   });
 
@@ -103,7 +111,11 @@ void main() {
             ),
           ],
           child: MaterialApp(
-            theme: ThemeData.dark(useMaterial3: true),
+            theme: ThemeData(
+              brightness: Brightness.dark,
+              useMaterial3: true,
+              fontFamily: 'NotoSansKR',
+            ),
             home: Scaffold(
               body: ReferenceImagesScreen(
                 isPhone: isPhone,
@@ -121,7 +133,7 @@ void main() {
         scrollable: find.byType(Scrollable).first,
       );
       await tester.pumpAndSettle();
-      expect(find.text('Revision d446ad82'), findsWidgets);
+      expect(find.text('개정본 d446ad82'), findsWidgets);
       final revisionItem = tester
           .widgetList<DropdownMenuItem<String>>(
             find.byType(DropdownMenuItem<String>),
@@ -131,33 +143,30 @@ void main() {
 
       await tester.tap(find.byIcon(Icons.model_training_outlined));
       await tester.pumpAndSettle();
-      expect(find.text('Model a0736e17'), findsWidgets);
-      expect(find.text('Source: Revision d446ad82'), findsOneWidget);
-      expect(find.text('Source: Revision d446ad82\nVALIDATED'), findsOneWidget);
-      expect(find.text('Build source: Revision d446ad82'), findsOneWidget);
+      expect(find.text('모델 a0736e17'), findsWidgets);
+      expect(find.text('기준: 개정본 d446ad82'), findsOneWidget);
+      expect(find.text('기준: 개정본 d446ad82\n검증 완료'), findsOneWidget);
+      expect(find.text('빌드 기준: 개정본 d446ad82'), findsOneWidget);
       expect(find.textContaining(modelId), findsNothing);
       expect(tester.takeException(), isNull);
 
-      await tester.tap(find.text('Full identifiers'));
+      await tester.tap(find.text('전체 식별자'));
       await tester.pumpAndSettle();
       expect(
-        find.text('Model ID: $modelId\nSource revision ID: $revisionId'),
+        find.text('모델 ID: $modelId\n기준 개정본 ID: $revisionId'),
         findsOneWidget,
       );
       expect(tester.takeException(), isNull);
 
-      await tester.tap(find.text('Build selected revision'));
+      await tester.tap(find.text('선택한 개정본으로 빌드'));
       await tester.pumpAndSettle();
-      expect(find.text('Build source: Revision d446ad82'), findsNWidgets(2));
+      expect(find.text('빌드 기준: 개정본 d446ad82'), findsNWidgets(2));
       await tester.tap(find.byType(CheckboxListTile));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Approve and build'));
+      await tester.tap(find.text('동의하고 빌드'));
       await tester.pumpAndSettle();
       expect(api.requestedRevisionId, revisionId);
-      expect(
-        find.textContaining('Build completed for Revision d446ad82'),
-        findsOneWidget,
-      );
+      expect(find.textContaining('개정본 d446ad82 빌드 완료'), findsOneWidget);
       expect(tester.takeException(), isNull);
     });
   }
@@ -188,7 +197,11 @@ void main() {
           ),
         ],
         child: MaterialApp(
-          theme: ThemeData.dark(useMaterial3: true),
+          theme: ThemeData(
+            brightness: Brightness.dark,
+            useMaterial3: true,
+            fontFamily: 'NotoSansKR',
+          ),
           home: Scaffold(
             body: ReferenceImagesScreen(
               isPhone: true,
@@ -234,7 +247,11 @@ void main() {
           ),
         ],
         child: MaterialApp(
-          theme: ThemeData.dark(useMaterial3: true),
+          theme: ThemeData(
+            brightness: Brightness.dark,
+            useMaterial3: true,
+            fontFamily: 'NotoSansKR',
+          ),
           home: Scaffold(
             body: ReferenceImagesScreen(
               initialStatus: _FakeReferenceApi.status,
@@ -247,7 +264,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Management token was rejected.'), findsOneWidget);
-    expect(find.text('Reference management is unavailable'), findsNothing);
+    expect(find.text('기준 이미지를 관리할 수 없어'), findsNothing);
   });
 
   testWidgets('reference screen state survives navigation to another tab', (
@@ -273,7 +290,11 @@ void main() {
           ChangeNotifierProvider(create: (_) => FrameReceiverService()),
         ],
         child: MaterialApp(
-          theme: ThemeData.dark(useMaterial3: true),
+          theme: ThemeData(
+            brightness: Brightness.dark,
+            useMaterial3: true,
+            fontFamily: 'NotoSansKR',
+          ),
           home: const AppShell(),
         ),
       ),
@@ -281,21 +302,21 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
 
-    await tester.tap(find.text('References'));
+    await tester.tap(find.text('기준 이미지'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
     final beforeNavigation = tester.element(
       find.byType(ReferenceImagesScreen, skipOffstage: false),
     );
 
-    await tester.tap(find.text('Viewer'));
+    await tester.tap(find.text('뷰어'));
     await tester.pump();
     final whileHidden = tester.element(
       find.byType(ReferenceImagesScreen, skipOffstage: false),
     );
     expect(identical(whileHidden, beforeNavigation), isTrue);
 
-    await tester.tap(find.text('References'));
+    await tester.tap(find.text('기준 이미지'));
     await tester.pump();
     final afterNavigation = tester.element(
       find.byType(ReferenceImagesScreen, skipOffstage: false),

@@ -27,13 +27,13 @@ class ZoneListPanel extends StatelessWidget {
                   const Icon(Icons.layers, size: 18),
                   const SizedBox(width: 8),
                   const Text(
-                    'Allowed Zones',
+                    '허용 영역',
                     style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                   ),
                   const Spacer(),
                   IconButton(
                     icon: const Icon(Icons.add_circle_outline, size: 20),
-                    tooltip: 'Add Zone',
+                    tooltip: '영역 추가',
                     onPressed: provider.addZone,
                   ),
                 ],
@@ -46,7 +46,7 @@ class ZoneListPanel extends StatelessWidget {
               child: zones.isEmpty
                   ? const Center(
                       child: Text(
-                        'No zones.\nClick + to add a zone.',
+                        '영역이 없어.\n+ 버튼으로 영역을 추가해.',
                         textAlign: TextAlign.center,
                         style: TextStyle(color: Colors.grey),
                       ),
@@ -79,7 +79,7 @@ class ZoneListPanel extends StatelessWidget {
                               style: const TextStyle(fontSize: 13),
                             ),
                             subtitle: Text(
-                              '${zone.points.length} points · ${zone.id}',
+                              '꼭짓점 ${zone.points.length}개 · ${zone.id}',
                               style: const TextStyle(fontSize: 11),
                             ),
                             trailing: PopupMenuButton<String>(
@@ -87,16 +87,16 @@ class ZoneListPanel extends StatelessWidget {
                               itemBuilder: (_) => [
                                 const PopupMenuItem(
                                   value: 'toggle',
-                                  child: Text('Toggle Enable'),
+                                  child: Text('사용 여부 전환'),
                                 ),
                                 const PopupMenuItem(
                                   value: 'rename',
-                                  child: Text('Rename'),
+                                  child: Text('이름 변경'),
                                 ),
                                 const PopupMenuItem(
                                   value: 'delete',
                                   child: Text(
-                                    'Delete',
+                                    '삭제',
                                     style: TextStyle(color: Colors.red),
                                   ),
                                 ),
@@ -138,12 +138,12 @@ class ZoneListPanel extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Selected: ${zone.name}',
+            '선택: ${zone.name}',
             style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
           ),
           const SizedBox(height: 4),
           Text(
-            'Points: ${zone.points.length}',
+            '꼭짓점: ${zone.points.length}개',
             style: const TextStyle(fontSize: 11, color: Colors.grey),
           ),
           const SizedBox(height: 8),
@@ -152,10 +152,7 @@ class ZoneListPanel extends StatelessWidget {
               Expanded(
                 child: ElevatedButton.icon(
                   icon: const Icon(Icons.add, size: 14),
-                  label: const Text(
-                    'Add Point',
-                    style: TextStyle(fontSize: 12),
-                  ),
+                  label: const Text('꼭짓점 추가', style: TextStyle(fontSize: 12)),
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 8),
                   ),
@@ -225,23 +222,23 @@ class ZoneListPanel extends StatelessWidget {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Rename Zone'),
+        title: const Text('영역 이름 변경'),
         content: TextField(
           controller: controller,
           autofocus: true,
-          decoration: const InputDecoration(labelText: 'Zone Name'),
+          decoration: const InputDecoration(labelText: '영역 이름'),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
+            child: const Text('취소'),
           ),
           FilledButton(
             onPressed: () {
               provider.updateZone(index, name: controller.text);
               Navigator.pop(ctx);
             },
-            child: const Text('OK'),
+            child: const Text('확인'),
           ),
         ],
       ),
@@ -293,7 +290,7 @@ class _PointRow extends StatelessWidget {
           ),
           IconButton(
             icon: const Icon(Icons.delete_outline, size: 16),
-            tooltip: canRemove ? 'Delete Point' : 'Polygon needs 3 points',
+            tooltip: canRemove ? '꼭짓점 삭제' : '꼭짓점이 최소 3개 필요해',
             padding: EdgeInsets.zero,
             constraints: const BoxConstraints.tightFor(width: 28, height: 28),
             color: canRemove ? Colors.redAccent : Colors.grey,

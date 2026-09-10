@@ -2,6 +2,9 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:provider/provider.dart';
@@ -49,6 +52,11 @@ List<int> visibleAppItemIndexes(
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  LicenseRegistry.addLicense(() async* {
+    yield LicenseEntryWithLineBreaks([
+      'Noto Sans CJK KR',
+    ], await rootBundle.loadString('assets/fonts/LICENSE.txt'));
+  });
   MediaKit.ensureInitialized();
   final packageInfo = await PackageInfo.fromPlatform();
   final appTitle = 'CatchEye Studio v${packageInfo.version}';
@@ -101,8 +109,12 @@ class CatchEyeStudioApp extends StatelessWidget {
       child: MaterialApp(
         title: appTitle,
         debugShowCheckedModeBanner: false,
+        locale: const Locale('ko'),
+        supportedLocales: const [Locale('ko')],
+        localizationsDelegates: GlobalMaterialLocalizations.delegates,
         theme: ThemeData(
           brightness: Brightness.dark,
+          fontFamily: 'NotoSansKR',
           scaffoldBackgroundColor: appBackground,
           colorScheme: const ColorScheme.dark(
             primary: neutralPrimary,
@@ -122,14 +134,20 @@ class CatchEyeStudioApp extends StatelessWidget {
             style: FilledButton.styleFrom(
               backgroundColor: neutralPrimary,
               foregroundColor: const Color(0xFF111111),
-              textStyle: const TextStyle(fontWeight: FontWeight.w700),
+              textStyle: const TextStyle(
+                fontFamily: 'NotoSansKR',
+                fontWeight: FontWeight.w700,
+              ),
             ),
           ),
           outlinedButtonTheme: OutlinedButtonThemeData(
             style: OutlinedButton.styleFrom(
               foregroundColor: neutralPrimary,
               side: const BorderSide(color: Color(0xFF666666)),
-              textStyle: const TextStyle(fontWeight: FontWeight.w700),
+              textStyle: const TextStyle(
+                fontFamily: 'NotoSansKR',
+                fontWeight: FontWeight.w700,
+              ),
             ),
           ),
           navigationRailTheme: const NavigationRailThemeData(
@@ -181,42 +199,42 @@ class _AppShellState extends State<AppShell> {
 
   static const _items = [
     _NavItem(
-      label: 'Viewer',
+      label: '뷰어',
       icon: Icons.live_tv_outlined,
       selectedIcon: Icons.live_tv,
     ),
     _NavItem(
-      label: 'Monitor',
+      label: '모니터',
       icon: Icons.grid_view_outlined,
       selectedIcon: Icons.grid_view,
     ),
     _NavItem(
-      label: 'ROI Editor',
+      label: 'ROI 편집',
       icon: Icons.edit_location_alt_outlined,
       selectedIcon: Icons.edit_location_alt,
     ),
     _NavItem(
-      label: 'Camera Properties',
+      label: '카메라 설정',
       icon: Icons.settings_input_component_outlined,
       selectedIcon: Icons.settings_input_component,
     ),
     _NavItem(
-      label: 'Camera Geometry',
+      label: '카메라 위치',
       icon: Icons.threed_rotation_outlined,
       selectedIcon: Icons.threed_rotation,
     ),
     _NavItem(
-      label: 'Images',
+      label: '저장 이미지',
       icon: Icons.photo_library_outlined,
       selectedIcon: Icons.photo_library,
     ),
     _NavItem(
-      label: 'Results',
+      label: '검사 결과',
       icon: Icons.fact_check_outlined,
       selectedIcon: Icons.fact_check,
     ),
     _NavItem(
-      label: 'References',
+      label: '기준 이미지',
       icon: Icons.collections_bookmark_outlined,
       selectedIcon: Icons.collections_bookmark,
     ),

@@ -100,7 +100,7 @@ class _CaptureImagesScreenState extends State<CaptureImagesScreen> {
           ),
           const SizedBox(width: 8),
           const Text(
-            'Images',
+            '저장 이미지',
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
           ),
           const Spacer(),
@@ -112,7 +112,7 @@ class _CaptureImagesScreenState extends State<CaptureImagesScreen> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Tooltip(
-                    message: 'Capture',
+                    message: '촬영',
                     child: IconButton.outlined(
                       icon: const Icon(Icons.camera_alt_outlined, size: 20),
                       onPressed: _captureBusy ? null : _captureAndShowLatest,
@@ -120,7 +120,7 @@ class _CaptureImagesScreenState extends State<CaptureImagesScreen> {
                   ),
                   const SizedBox(width: 4),
                   Tooltip(
-                    message: 'Latest',
+                    message: '최신 이미지',
                     child: IconButton.outlined(
                       icon: const Icon(Icons.skip_next_outlined, size: 20),
                       onPressed: _loading ? null : _showLatest,
@@ -128,7 +128,7 @@ class _CaptureImagesScreenState extends State<CaptureImagesScreen> {
                   ),
                   const SizedBox(width: 4),
                   Tooltip(
-                    message: 'Refresh',
+                    message: '새로고침',
                     child: IconButton.outlined(
                       icon: const Icon(Icons.refresh, size: 20),
                       onPressed: _loading ? null : _reload,
@@ -136,7 +136,7 @@ class _CaptureImagesScreenState extends State<CaptureImagesScreen> {
                   ),
                   const SizedBox(width: 8),
                   Tooltip(
-                    message: _fitToView ? 'Original size' : 'Fit to view',
+                    message: _fitToView ? '원본 크기' : '화면 맞춤',
                     child: IconButton.outlined(
                       icon: Icon(
                         _fitToView
@@ -151,7 +151,7 @@ class _CaptureImagesScreenState extends State<CaptureImagesScreen> {
                   ),
                   const SizedBox(width: 4),
                   Tooltip(
-                    message: 'Zoom out',
+                    message: '축소',
                     child: IconButton.outlined(
                       icon: const Icon(Icons.remove, size: 20),
                       onPressed: _selectedImage == null
@@ -170,7 +170,7 @@ class _CaptureImagesScreenState extends State<CaptureImagesScreen> {
                   ),
                   const SizedBox(width: 4),
                   Tooltip(
-                    message: 'Zoom in',
+                    message: '확대',
                     child: IconButton.outlined(
                       icon: const Icon(Icons.add, size: 20),
                       onPressed: _selectedImage == null
@@ -209,7 +209,7 @@ class _CaptureImagesScreenState extends State<CaptureImagesScreen> {
               child: DropdownButtonFormField<String>(
                 initialValue: _selectedDate,
                 decoration: const InputDecoration(
-                  labelText: 'Date',
+                  labelText: '날짜',
                   border: OutlineInputBorder(),
                   isDense: true,
                 ),
@@ -232,7 +232,7 @@ class _CaptureImagesScreenState extends State<CaptureImagesScreen> {
             child: _images.isEmpty
                 ? const _MessagePanel(
                     icon: Icons.image_not_supported_outlined,
-                    text: 'No images',
+                    text: '저장된 이미지가 없어',
                   )
                 : ListView.separated(
                     itemCount: _images.length,
@@ -250,7 +250,7 @@ class _CaptureImagesScreenState extends State<CaptureImagesScreen> {
                           image.filename,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(fontFamily: 'monospace'),
+                          style: const TextStyle(fontFamily: 'NotoSansKR'),
                         ),
                         subtitle: Text(
                           '${image.width} x ${image.height}  ${_formatBytes(image.sizeBytes)}',
@@ -282,7 +282,7 @@ class _CaptureImagesScreenState extends State<CaptureImagesScreen> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             const Text(
-              'Storage',
+              '저장 공간',
               style: TextStyle(fontSize: 13, fontWeight: FontWeight.w800),
             ),
             const SizedBox(height: 8),
@@ -290,7 +290,7 @@ class _CaptureImagesScreenState extends State<CaptureImagesScreen> {
               children: [
                 Expanded(
                   child: Text(
-                    '${_formatBytes(storage.availableBytes)} free / ${_formatBytes(storage.totalBytes)}',
+                    '여유 ${_formatBytes(storage.availableBytes)} / 전체 ${_formatBytes(storage.totalBytes)}',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(fontSize: 12),
@@ -298,7 +298,7 @@ class _CaptureImagesScreenState extends State<CaptureImagesScreen> {
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  '${storage.usedPercent.round()}% used',
+                  '${storage.usedPercent.round()}% 사용 중',
                   maxLines: 1,
                   style: const TextStyle(fontSize: 12, color: Colors.grey),
                 ),
@@ -312,7 +312,7 @@ class _CaptureImagesScreenState extends State<CaptureImagesScreen> {
             ),
             const SizedBox(height: 8),
             Text(
-              'Photos ${_formatBytes(storage.captureBytes)} · ${storage.captureCount} files',
+              '이미지 ${_formatBytes(storage.captureBytes)} · ${storage.captureCount}개',
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(fontSize: 12, color: Colors.grey),
@@ -332,10 +332,7 @@ class _CaptureImagesScreenState extends State<CaptureImagesScreen> {
       return _MessagePanel(icon: Icons.error_outline, text: _error!);
     }
     if (image == null || _imageBytes == null) {
-      return const _MessagePanel(
-        icon: Icons.image_outlined,
-        text: 'Select image',
-      );
+      return const _MessagePanel(icon: Icons.image_outlined, text: '이미지를 선택해');
     }
 
     return Stack(
@@ -373,7 +370,7 @@ class _CaptureImagesScreenState extends State<CaptureImagesScreen> {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
-                  fontFamily: 'monospace',
+                  fontFamily: 'NotoSansKR',
                   fontSize: 12,
                   color: Colors.white,
                 ),
@@ -602,7 +599,7 @@ class _StorageUnavailableSummary extends StatelessWidget {
             SizedBox(width: 8),
             Expanded(
               child: Text(
-                'Storage unavailable',
+                '저장 공간을 조회할 수 없어',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(fontSize: 12, color: Colors.grey),

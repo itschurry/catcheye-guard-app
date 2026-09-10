@@ -63,12 +63,12 @@ class _RoiEditorScreenState extends State<RoiEditorScreen> {
 
   String get _streamStatus {
     final uri = context.read<SettingsProvider>().settings.streamUri;
-    if (uri.scheme != 'ws' && uri.scheme != 'wss') return 'WebSocket required';
+    if (uri.scheme != 'ws' && uri.scheme != 'wss') return 'WebSocket 연결 필요';
     final receiver = _receiver;
-    if (receiver == null || receiver.connecting) return 'Connecting';
+    if (receiver == null || receiver.connecting) return '연결 중';
     if (receiver.errorMessage != null) return receiver.errorMessage!;
-    if (!receiver.connected) return 'Disconnected';
-    return _cameraFrame(receiver) == null ? 'Waiting for camera' : 'Live';
+    if (!receiver.connected) return '연결 끊김';
+    return _cameraFrame(receiver) == null ? '카메라 대기 중' : '실시간';
   }
 
   @override
@@ -127,10 +127,7 @@ class _RoiEditorScreenState extends State<RoiEditorScreen> {
                           ),
                           child: Row(
                             children: [
-                              const Text(
-                                'Zones',
-                                style: TextStyle(fontSize: 14),
-                              ),
+                              const Text('영역', style: TextStyle(fontSize: 14)),
                               const Spacer(),
                               TextButton.icon(
                                 onPressed: () => setState(
@@ -143,9 +140,7 @@ class _RoiEditorScreenState extends State<RoiEditorScreen> {
                                       : Icons.keyboard_arrow_down,
                                 ),
                                 label: Text(
-                                  _zonePanelExpanded
-                                      ? 'Hide zones'
-                                      : 'Show zones',
+                                  _zonePanelExpanded ? '영역 목록 숨기기' : '영역 목록 표시',
                                 ),
                               ),
                             ],
@@ -234,7 +229,7 @@ class _RoiEditorScreenState extends State<RoiEditorScreen> {
           Icon(Icons.edit_location_alt, size: 20, color: colorScheme.secondary),
           const SizedBox(width: 8),
           const Text(
-            'ROI Editor',
+            'ROI 편집',
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
           ),
           const SizedBox(width: 16),
@@ -243,13 +238,13 @@ class _RoiEditorScreenState extends State<RoiEditorScreen> {
               if (allowedKinds.contains(RoiConfigKind.person))
                 const ButtonSegment(
                   value: RoiConfigKind.person,
-                  label: Text('Person ROI'),
+                  label: Text('사람 ROI'),
                   icon: Icon(Icons.person_outline),
                 ),
               if (allowedKinds.contains(RoiConfigKind.pallet))
                 const ButtonSegment(
                   value: RoiConfigKind.pallet,
-                  label: Text('Pallet ROI'),
+                  label: Text('팔레트 ROI'),
                   icon: Icon(Icons.inventory_2_outlined),
                 ),
             ],
@@ -276,7 +271,7 @@ class _RoiEditorScreenState extends State<RoiEditorScreen> {
             else
               const Expanded(
                 child: Text(
-                  'No file',
+                  '파일 없음',
                   style: TextStyle(fontSize: 11, color: Colors.grey),
                 ),
               ),
@@ -290,7 +285,7 @@ class _RoiEditorScreenState extends State<RoiEditorScreen> {
                 borderRadius: BorderRadius.circular(4),
               ),
               child: const Text(
-                'Modified',
+                '수정됨',
                 style: TextStyle(fontSize: 10, color: Colors.white),
               ),
             ),
@@ -298,12 +293,12 @@ class _RoiEditorScreenState extends State<RoiEditorScreen> {
           // Action buttons
           IconButton(
             icon: const Icon(Icons.cloud_download_outlined, size: 20),
-            tooltip: 'Load ${provider.selectedKind.label} From Device',
+            tooltip: '장비에서 ${provider.selectedKind.label} 불러오기',
             onPressed: () => _loadFromDevice(context, provider),
           ),
           IconButton(
             icon: const Icon(Icons.cloud_upload_outlined, size: 20),
-            tooltip: 'Push ${provider.selectedKind.label} To Device',
+            tooltip: '장비에 ${provider.selectedKind.label} 적용',
             onPressed: () => _pushToDevice(context, provider),
           ),
         ],
@@ -332,24 +327,24 @@ class _RoiEditorScreenState extends State<RoiEditorScreen> {
         child: Row(
           children: [
             _InfoChip(
-              label: 'Camera',
+              label: '카메라',
               value: provider.config.cameraId.isEmpty
-                  ? 'N/A'
+                  ? '정보 없음'
                   : provider.config.cameraId,
             ),
             const SizedBox(width: 16),
             _InfoChip(
-              label: 'Resolution',
+              label: '해상도',
               value:
                   '${provider.config.imageWidth} × ${provider.config.imageHeight}',
             ),
             const SizedBox(width: 16),
             _InfoChip(
-              label: 'Zones',
+              label: '영역',
               value: '${provider.config.allowedZones.length}',
             ),
             const SizedBox(width: 16),
-            _InfoChip(label: 'Stream', value: _streamStatus),
+            _InfoChip(label: '영상', value: _streamStatus),
             const Spacer(),
             if (provider.errorMessage != null)
               Row(
@@ -384,15 +379,15 @@ class _RoiEditorScreenState extends State<RoiEditorScreen> {
         kind: kind,
       );
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('${kind.label} loaded from device')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('장비에서 ${kind.label} 불러오기 완료')));
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to load ${kind.label}: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('${kind.label} 불러오기 실패: $e')));
       }
     }
   }
@@ -408,15 +403,15 @@ class _RoiEditorScreenState extends State<RoiEditorScreen> {
     try {
       await api.pushRoi(settings, provider.config, kind: kind);
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('${kind.label} pushed to device')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('장비에 ${kind.label} 적용 완료')));
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to push ${kind.label}: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('${kind.label} 적용 실패: $e')));
       }
     }
   }

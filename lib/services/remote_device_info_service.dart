@@ -21,23 +21,21 @@ class RemoteDeviceInfo {
   factory RemoteDeviceInfo.fromJson(Map<String, dynamic> json) {
     final kindValue = json['kind'];
     if (kindValue is! String) {
-      throw const FormatException('device kind string expected');
+      throw const FormatException('장비 종류 문자열이 필요해');
     }
     final kind = RemoteDeviceKind.fromApiValue(kindValue);
     final personRoiAlertDisabled = json['person_roi_alert_disabled'];
     if (personRoiAlertDisabled != null && personRoiAlertDisabled is! bool) {
-      throw const FormatException('person_roi_alert_disabled bool expected');
+      throw const FormatException('person_roi_alert_disabled 불리언 값이 필요해');
     }
     final runtimeMode = json['runtime_mode'];
     if (runtimeMode != null && runtimeMode is! String) {
-      throw const FormatException('runtime_mode string expected');
+      throw const FormatException('runtime_mode 문자열이 필요해');
     }
     if (kind == RemoteDeviceKind.inspection &&
         runtimeMode != null &&
         runtimeMode != 'station') {
-      throw FormatException(
-        'unsupported inspection runtime mode: $runtimeMode',
-      );
+      throw FormatException('지원하지 않는 검사 실행 모드: $runtimeMode');
     }
     return RemoteDeviceInfo(
       kind: kind,
@@ -74,13 +72,13 @@ class RemoteDeviceInfoService {
             ? response.reasonPhrase
             : responseBody;
         throw HttpException(
-          'Request failed (${response.statusCode}) for ${settings.buildApiUri('device-info')}: $errorBody',
+          '요청 실패 (${response.statusCode}) · ${settings.buildApiUri('device-info')}: $errorBody',
         );
       }
 
       final decoded = jsonDecode(responseBody);
       if (decoded is! Map<String, dynamic>) {
-        throw const FormatException('JSON object response expected');
+        throw const FormatException('JSON 객체 응답이 필요해');
       }
       return RemoteDeviceInfo.fromJson(decoded);
     } on TimeoutException {

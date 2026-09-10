@@ -19,14 +19,13 @@ class RemoteCaptureApiException implements Exception {
   });
 
   @override
-  String toString() =>
-      'RemoteCaptureApiException: $method $uri failed ($statusCode): $message';
+  String toString() => '촬영 API 오류: $method $uri ($statusCode): $message';
 }
 
 enum StationCaptureTarget {
   boltStud('bolt-stud', 'Stud + Bolt Head'),
   nut('nut', 'Nut + Nut Hole'),
-  all('all', 'All Cameras');
+  all('all', '전체 카메라');
 
   const StationCaptureTarget(this.path, this.label);
 
@@ -72,9 +71,7 @@ class StationUndistortion {
   factory StationUndistortion.fromJson(Map<String, dynamic> json) {
     final generation = json['image_generation'];
     if (generation is! int || generation < 0) {
-      throw const FormatException(
-        'image_generation must be a nonnegative integer',
-      );
+      throw const FormatException('image_generation은 0 이상의 정수여야 해');
     }
     return StationUndistortion(
       cameraId: _requiredString(json, 'camera_id'),
@@ -143,23 +140,23 @@ class StationCaptureStatus {
   List<StationCaptureTarget> get captureTargets => switch (setId) {
     'fastener' => StationCaptureTarget.values,
     'bolt_stud' || 'nut' => const [StationCaptureTarget.all],
-    _ => throw StateError('unsupported station set_id: $setId'),
+    _ => throw StateError('지원하지 않는 검사 구성 set_id: $setId'),
   };
 
   factory StationCaptureStatus.fromJson(Map<String, dynamic> json) {
     final rawGroups = json['groups'];
     if (rawGroups is! Map) {
-      throw const FormatException('groups object expected');
+      throw const FormatException('groups 객체가 필요해');
     }
     final groups = <String, List<String>>{};
     for (final entry in rawGroups.entries) {
       if (entry.key is! String || entry.value is! List) {
-        throw const FormatException('invalid station group');
+        throw const FormatException('검사 그룹이 올바르지 않아');
       }
       final inspectionIds = <String>[];
       for (final value in entry.value as List) {
         if (value is! String) {
-          throw const FormatException('inspection ID string expected');
+          throw const FormatException('검사 ID 문자열이 필요해');
         }
         inspectionIds.add(value);
       }
@@ -168,12 +165,12 @@ class StationCaptureStatus {
 
     final rawCameras = json['cameras'];
     if (rawCameras is! Map) {
-      throw const FormatException('cameras object expected');
+      throw const FormatException('cameras 객체가 필요해');
     }
     final cameras = <String, StationCameraStatus>{};
     for (final entry in rawCameras.entries) {
       if (entry.key is! String || entry.value is! Map) {
-        throw const FormatException('invalid station camera');
+        throw const FormatException('검사 카메라 정보가 올바르지 않아');
       }
       cameras[entry.key as String] = StationCameraStatus.fromJson(
         Map<String, dynamic>.from(entry.value as Map),
@@ -182,13 +179,13 @@ class StationCaptureStatus {
 
     final rawLastResult = json['last_result'];
     if (rawLastResult != null && rawLastResult is! Map) {
-      throw const FormatException('last_result object expected');
+      throw const FormatException('last_result 객체가 필요해');
     }
 
     final setId = _requiredString(json, 'set_id');
-    if (setId.isEmpty) throw const FormatException('set_id must not be empty');
+    if (setId.isEmpty) throw const FormatException('set_id가 비어 있으면 안 돼');
     if (!supportedSetIds.contains(setId)) {
-      throw FormatException('unsupported station set_id: $setId');
+      throw FormatException('지원하지 않는 검사 구성 set_id: $setId');
     }
     return StationCaptureStatus(
       setId: setId,
@@ -219,13 +216,13 @@ class StationViewerSource {
   factory StationViewerSource.fromJson(Map<String, dynamic> json) {
     final rawCameras = json['cameras'];
     if (rawCameras is! List || rawCameras.any((value) => value is! String)) {
-      throw const FormatException('camera string list expected');
+      throw const FormatException('카메라 문자열 목록이 필요해');
     }
     final rawCameraIds = json['camera_ids'];
     if (rawCameraIds != null &&
         (rawCameraIds is! List ||
             rawCameraIds.any((value) => value is! String))) {
-      throw const FormatException('camera_ids string list expected');
+      throw const FormatException('camera_ids 문자열 목록이 필요해');
     }
     final cameraIds = rawCameraIds is List
         ? rawCameraIds.cast<String>()
@@ -235,7 +232,7 @@ class StationViewerSource {
           ];
     if (cameraIds.length != cameraIds.toSet().length ||
         cameraIds.any((cameraId) => cameraId.isEmpty)) {
-      throw const FormatException('camera_ids must be unique and nonempty');
+      throw const FormatException('camera_ids는 중복되거나 비어 있으면 안 돼');
     }
     return StationViewerSource(
       cameraIds: List.unmodifiable(cameraIds),
@@ -259,7 +256,7 @@ enum StationCycleState {
       'RUNNING' => StationCycleState.running,
       'COMPLETED' => StationCycleState.completed,
       'CANCELLED' => StationCycleState.cancelled,
-      _ => throw FormatException('unsupported station cycle state: $value'),
+      _ => throw FormatException('지원하지 않는 검사 상태: $value'),
     };
   }
 }
@@ -300,15 +297,15 @@ class StationInspectionResult {
             rawArtifacts.entries.any(
               (entry) => entry.key is! String || entry.value is! String,
             ))) {
-      throw const FormatException('inspection artifacts string map expected');
+      throw const FormatException('검사 artifacts에 문자열 맵이 필요해');
     }
     final detections = json['detections'];
     if (detections != null && detections is! List) {
-      throw const FormatException('detections list expected');
+      throw const FormatException('detections 목록이 필요해');
     }
     final measurements = json['measurements'];
     if (measurements != null && measurements is! Map) {
-      throw const FormatException('measurements object expected');
+      throw const FormatException('measurements 객체가 필요해');
     }
     final rawFailedMetrics = measurements is Map
         ? measurements['failed_metrics']
@@ -407,7 +404,7 @@ class StationCaptureResult {
       inspections: const {},
       artifacts: null,
       artifactError: '',
-      error: 'Result expired, was evicted, or the runtime restarted',
+      error: '결과 보관 기간이 지났거나 삭제됐거나 장비가 재시작됐어',
       rawJson: const {},
     );
   }
@@ -417,13 +414,13 @@ class StationCaptureResult {
     final state = StationCycleState.parse(_requiredString(json, 'state'));
     final rawInspections = json['inspections'];
     if (rawInspections != null && rawInspections is! Map) {
-      throw const FormatException('inspections object expected');
+      throw const FormatException('inspections 객체가 필요해');
     }
     final inspections = <String, StationInspectionResult>{};
     if (rawInspections is Map) {
       for (final entry in rawInspections.entries) {
         if (entry.key is! String || entry.value is! Map) {
-          throw const FormatException('invalid inspection result');
+          throw const FormatException('검사 결과가 올바르지 않아');
         }
         inspections[entry.key as String] = StationInspectionResult.fromJson(
           Map<String, dynamic>.from(entry.value as Map),
@@ -434,7 +431,7 @@ class StationCaptureResult {
     if (rawInspectionIds != null &&
         (rawInspectionIds is! List ||
             rawInspectionIds.any((value) => value is! String))) {
-      throw const FormatException('inspection_ids string list expected');
+      throw const FormatException('inspection_ids 문자열 목록이 필요해');
     }
     return StationCaptureResult(
       cycleId: cycleId,
@@ -487,12 +484,12 @@ class StationCaptureResultList {
   factory StationCaptureResultList.fromJson(Map<String, dynamic> json) {
     final rawResults = json['results'];
     if (rawResults is! List) {
-      throw const FormatException('results list expected');
+      throw const FormatException('results 목록이 필요해');
     }
     final results = <StationCaptureResult>[];
     for (final value in rawResults) {
       if (value is! Map) {
-        throw const FormatException('invalid station capture result');
+        throw const FormatException('장비 촬영 결과가 올바르지 않아');
       }
       results.add(
         StationCaptureResult.fromJson(Map<String, dynamic>.from(value)),
@@ -547,7 +544,7 @@ class RemoteCaptureApiService {
     String cycleId,
   ) async {
     final id = cycleId.trim();
-    if (id.isEmpty) throw const FormatException('cycle_id must not be empty');
+    if (id.isEmpty) throw const FormatException('cycle_id가 비어 있으면 안 돼');
     final json = await _requestJson(
       'GET',
       settings.buildApiUri('capture/results/${Uri.encodeComponent(id)}'),
@@ -576,7 +573,7 @@ class RemoteCaptureApiService {
         !identifier.hasMatch(inspectionId) ||
         (kind != 'raw' && kind != 'overlay')) {
       throw const FormatException(
-        'cycle_id, inspection_id and raw/overlay kind are required',
+        'cycle_id, inspection_id와 이미지 종류(raw/overlay)가 필요해',
       );
     }
     final uri = settings
@@ -603,15 +600,15 @@ class RemoteCaptureApiService {
         );
       }
       if (response.headers.contentType?.mimeType != 'image/png') {
-        throw const FormatException('saved inspection image must be PNG');
+        throw const FormatException('저장된 검사 이미지는 PNG여야 해');
       }
       if (response.contentLength > maxBytes) {
-        throw const FormatException('saved image exceeds 16 MiB');
+        throw const FormatException('저장된 이미지가 16 MiB를 초과했어');
       }
       final bytes = BytesBuilder(copy: false);
       await for (final chunk in response.timeout(_requestTimeout)) {
         if (bytes.length + chunk.length > maxBytes) {
-          throw const FormatException('saved image exceeds 16 MiB');
+          throw const FormatException('저장된 이미지가 16 MiB를 초과했어');
         }
         bytes.add(chunk);
       }
@@ -639,7 +636,7 @@ class RemoteCaptureApiService {
     bool? enabled,
   ) async {
     if (cameraId.trim().isEmpty) {
-      throw const FormatException('camera_id must not be empty');
+      throw const FormatException('camera_id가 비어 있으면 안 돼');
     }
     final json = await _requestJson(
       enabled == null ? 'GET' : 'POST',
@@ -651,9 +648,7 @@ class RemoteCaptureApiService {
     final result = StationUndistortion.fromJson(json);
     if (result.cameraId != cameraId ||
         (enabled != null && result.enabled != enabled)) {
-      throw const FormatException(
-        'undistortion response does not match the requested camera or mode',
-      );
+      throw const FormatException('왜곡 보정 응답이 요청한 카메라 또는 모드와 일치하지 않아');
     }
     return result;
   }
@@ -684,9 +679,7 @@ class RemoteCaptureApiService {
         .toList(growable: false);
     if (normalized.length > 4 ||
         normalized.length != normalized.toSet().length) {
-      throw const FormatException(
-        'camera_ids must contain up to four unique camera IDs',
-      );
+      throw const FormatException('camera_ids에는 중복 없이 최대 4개의 카메라 ID를 지정해야 해');
     }
     final json = await _requestJson(
       'POST',
@@ -701,9 +694,7 @@ class RemoteCaptureApiService {
         ? await fetchViewerSource(settings)
         : StationViewerSource.fromJson(json);
     if (normalized.length > 1 && !normalized.every(source.cameraIds.contains)) {
-      throw const FormatException(
-        'station runtime did not retain the multi-stream camera selection',
-      );
+      throw const FormatException('장비가 요청한 카메라 선택을 유지하지 않았어');
     }
     return source;
   }
@@ -743,7 +734,7 @@ class RemoteCaptureApiService {
       if (responseBody.isEmpty) return const <String, dynamic>{};
       final decoded = jsonDecode(responseBody);
       if (decoded is! Map<String, dynamic>) {
-        throw const FormatException('JSON object response expected');
+        throw const FormatException('JSON 객체 응답이 필요해');
       }
       return decoded;
     } on TimeoutException {
@@ -758,34 +749,34 @@ class RemoteCaptureApiService {
 
 String _requiredString(Map<String, dynamic> json, String key) {
   final value = json[key];
-  if (value is! String) throw FormatException('$key string expected');
+  if (value is! String) throw FormatException('$key 항목에 문자열이 필요해');
   return value;
 }
 
 String _optionalString(Map<String, dynamic> json, String key) {
   final value = json[key];
   if (value == null) return '';
-  if (value is! String) throw FormatException('$key string expected');
+  if (value is! String) throw FormatException('$key 항목에 문자열이 필요해');
   return value;
 }
 
 bool _requiredBool(Map<String, dynamic> json, String key) {
   final value = json[key];
-  if (value is! bool) throw FormatException('$key bool expected');
+  if (value is! bool) throw FormatException('$key 항목에 불리언 값이 필요해');
   return value;
 }
 
 int? _optionalInt(Map<String, dynamic> json, String key) {
   final value = json[key];
   if (value == null) return null;
-  if (value is! num) throw FormatException('$key number expected');
+  if (value is! num) throw FormatException('$key 항목에 숫자가 필요해');
   return value.toInt();
 }
 
 double? _optionalDouble(Map<String, dynamic> json, String key) {
   final value = json[key];
   if (value == null) return null;
-  if (value is! num) throw FormatException('$key number expected');
+  if (value is! num) throw FormatException('$key 항목에 숫자가 필요해');
   return value.toDouble();
 }
 

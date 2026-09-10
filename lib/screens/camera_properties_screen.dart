@@ -127,7 +127,7 @@ class _CameraPropertiesScreenState extends State<CameraPropertiesScreen> {
           : ListView(
               padding: const EdgeInsets.all(16),
               children: [
-                const _SectionTitle('Exposure'),
+                const _SectionTitle('노출'),
                 const SizedBox(height: 8),
                 _control(_property('ae-enable')),
                 _control(_property('ae-metering-mode')),
@@ -136,19 +136,19 @@ class _CameraPropertiesScreenState extends State<CameraPropertiesScreen> {
                 _control(_property('exposure-time')),
                 _control(_property('exposure-value')),
                 const SizedBox(height: 18),
-                const _SectionTitle('Gain / White Balance'),
+                const _SectionTitle('게인 / 화이트밸런스'),
                 const SizedBox(height: 8),
                 _control(_property('analogue-gain-mode')),
                 _control(_property('analogue-gain')),
                 _control(_property('awb-enable')),
                 _control(_property('awb-mode')),
                 const SizedBox(height: 18),
-                const _SectionTitle('Focus'),
+                const _SectionTitle('초점'),
                 const SizedBox(height: 8),
                 _control(_property('af-mode')),
                 _control(_property('lens-position')),
                 const SizedBox(height: 18),
-                const _SectionTitle('Image Tuning'),
+                const _SectionTitle('영상 조정'),
                 const SizedBox(height: 8),
                 _control(_property('brightness')),
                 _control(_property('contrast')),
@@ -194,7 +194,10 @@ class _CameraPropertiesScreenState extends State<CameraPropertiesScreen> {
           decoration: InputDecoration(labelText: spec.label, isDense: true),
           items: [
             for (final option in spec.options)
-              DropdownMenuItem(value: option, child: Text(option)),
+              DropdownMenuItem(
+                value: option,
+                child: Text(_propertyOptionLabel(option)),
+              ),
           ],
           onChanged: _saving || _enumValue(spec) == null
               ? null
@@ -333,16 +336,16 @@ class _CameraPropertiesToolbar extends StatelessWidget {
           ),
           const SizedBox(width: 10),
           const Text(
-            'Camera Properties',
+            '카메라 설정',
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
           ),
           const SizedBox(width: 12),
           Text(
             receiver.connected
-                ? 'Connected'
+                ? '연결됨'
                 : receiver.connecting
-                ? 'Connecting'
-                : 'Disconnected',
+                ? '연결 중'
+                : '연결 끊김',
             style: TextStyle(
               fontSize: 12,
               color: receiver.connected
@@ -365,13 +368,13 @@ class _CameraPropertiesToolbar extends StatelessWidget {
               receiver.connected ? Icons.power_off : Icons.power,
               size: 16,
             ),
-            label: Text(receiver.connected ? 'Disconnect' : 'Connect'),
+            label: Text(receiver.connected ? '연결 해제' : '연결'),
           ),
           const SizedBox(width: 8),
           OutlinedButton.icon(
             onPressed: loading || saving ? null : onReload,
             icon: const Icon(Icons.refresh, size: 16),
-            label: const Text('Reload'),
+            label: const Text('다시 불러오기'),
           ),
         ],
       ),
@@ -437,26 +440,32 @@ class _CameraPropertySpec {
 enum _CameraPropertyType { boolean, number, integer, enumValue }
 
 const _properties = <_CameraPropertySpec>[
-  _CameraPropertySpec.bool('ae-enable', 'AE'),
-  _CameraPropertySpec.enumValue('ae-metering-mode', 'AE metering', [
+  _CameraPropertySpec.bool('ae-enable', '자동 노출'),
+  _CameraPropertySpec.enumValue('ae-metering-mode', '노출 측광 방식', [
     'centre-weighted',
     'spot',
     'matrix',
   ]),
-  _CameraPropertySpec.integer('ae-flicker-period', 'Flicker us', 0, 20000, 200),
-  _CameraPropertySpec.enumValue('exposure-time-mode', 'Exposure mode', [
+  _CameraPropertySpec.integer(
+    'ae-flicker-period',
+    '깜빡임 주기 (µs)',
+    0,
+    20000,
+    200,
+  ),
+  _CameraPropertySpec.enumValue('exposure-time-mode', '노출 모드', [
     'auto',
     'manual',
   ]),
-  _CameraPropertySpec.integer('exposure-time', 'Exposure us', 0, 100000, 1000),
-  _CameraPropertySpec.number('exposure-value', 'EV', -4, 4, 160),
-  _CameraPropertySpec.enumValue('analogue-gain-mode', 'Gain mode', [
+  _CameraPropertySpec.integer('exposure-time', '노출 시간 (µs)', 0, 100000, 1000),
+  _CameraPropertySpec.number('exposure-value', '노출 보정값', -4, 4, 160),
+  _CameraPropertySpec.enumValue('analogue-gain-mode', '게인 모드', [
     'auto',
     'manual',
   ]),
-  _CameraPropertySpec.number('analogue-gain', 'Analogue gain', 1, 16, 150),
-  _CameraPropertySpec.bool('awb-enable', 'AWB'),
-  _CameraPropertySpec.enumValue('awb-mode', 'AWB mode', [
+  _CameraPropertySpec.number('analogue-gain', '아날로그 게인', 1, 16, 150),
+  _CameraPropertySpec.bool('awb-enable', '자동 화이트밸런스'),
+  _CameraPropertySpec.enumValue('awb-mode', '화이트밸런스 모드', [
     'auto',
     'incandescent',
     'tungsten',
@@ -465,15 +474,31 @@ const _properties = <_CameraPropertySpec>[
     'daylight',
     'cloudy',
   ]),
-  _CameraPropertySpec.enumValue('af-mode', 'AF mode', [
+  _CameraPropertySpec.enumValue('af-mode', '자동 초점 모드', [
     'manual',
     'auto',
     'continuous',
   ]),
-  _CameraPropertySpec.number('lens-position', 'Lens', 0, 12, 120),
-  _CameraPropertySpec.number('brightness', 'Brightness', -1, 1, 200),
-  _CameraPropertySpec.number('contrast', 'Contrast', 0, 4, 200),
-  _CameraPropertySpec.number('saturation', 'Saturation', 0, 4, 200),
-  _CameraPropertySpec.number('sharpness', 'Sharpness', 0, 8, 160),
-  _CameraPropertySpec.number('gamma', 'Gamma', 0.1, 4, 195),
+  _CameraPropertySpec.number('lens-position', '렌즈 위치', 0, 12, 120),
+  _CameraPropertySpec.number('brightness', '밝기', -1, 1, 200),
+  _CameraPropertySpec.number('contrast', '대비', 0, 4, 200),
+  _CameraPropertySpec.number('saturation', '채도', 0, 4, 200),
+  _CameraPropertySpec.number('sharpness', '선명도', 0, 8, 160),
+  _CameraPropertySpec.number('gamma', '감마', 0.1, 4, 195),
 ];
+
+String _propertyOptionLabel(String value) => switch (value) {
+  'centre-weighted' => '중앙 중점',
+  'spot' => '스폿',
+  'matrix' => '다분할',
+  'auto' => '자동',
+  'manual' => '수동',
+  'incandescent' => '백열등',
+  'tungsten' => '텅스텐등',
+  'fluorescent' => '형광등',
+  'indoor' => '실내',
+  'daylight' => '주광',
+  'cloudy' => '흐림',
+  'continuous' => '연속',
+  _ => value,
+};

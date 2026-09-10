@@ -51,7 +51,12 @@ class RoiCanvasPainter extends CustomPainter {
     }
   }
 
-  void _drawZone(Canvas canvas, RoiPolygon zone, bool isSelected, int zoneIndex) {
+  void _drawZone(
+    Canvas canvas,
+    RoiPolygon zone,
+    bool isSelected,
+    int zoneIndex,
+  ) {
     if (zone.points.length < 2) return;
 
     final points = zone.points.map(toCanvas).toList();
@@ -59,8 +64,8 @@ class RoiCanvasPainter extends CustomPainter {
     // Semi-transparent fill
     final fillColor = zone.enabled
         ? (isSelected
-            ? Colors.cyan.withValues(alpha: 0.25)
-            : Colors.amber.withValues(alpha: 0.15))
+              ? Colors.cyan.withValues(alpha: 0.25)
+              : Colors.amber.withValues(alpha: 0.15))
         : Colors.grey.withValues(alpha: 0.1);
 
     final fillPaint = Paint()
@@ -112,6 +117,7 @@ class RoiCanvasPainter extends CustomPainter {
         text: TextSpan(
           text: zone.name,
           style: TextStyle(
+            fontFamily: 'NotoSansKR',
             color: strokeColor,
             fontSize: 12,
             fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,

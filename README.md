@@ -6,7 +6,7 @@ CatchEye 장비의 영상 스트림을 확인하고 원격 설정을 조정하�
 
 Studio는 연결 시 `GET /api/device-info`를 호출해서 HSS/Pick/Capture/Inspection을 구분하고, 대상에 맞는 화면만 보여준다.
 Inspect의 운영 통합 프로파일은 `fastener`이고 캡처 그룹은 `bolt_stud`와 `nut`이야. Studio는 `/api/capture/status`의 `set_id`로 촬영 버튼을 결정해. 이전 그룹·개별 검사 선택 드롭다운과 구버전 API 호환 처리는 없어.
-HSS 연결에서 `person_roi_alert_disabled`가 `true`면 Viewer 툴바와 영상 영역 위에 깜빡이는 `ROI Alert Off` 경고를 표시한다.
+HSS 연결에서 `person_roi_alert_disabled`가 `true`면 뷰어 툴바와 영상 영역 위에 깜빡이는 `ROI 경고 꺼짐` 경고를 표시한다.
 기존 버전이 저장한 장비 종류 `guard`는 앱 시작 시 `hss`로 자동 변환한다.
 
 ## 설치
@@ -124,29 +124,29 @@ flutter test
 
 | 화면 | 대상 | 설명 |
 | --- | --- | --- |
-| Viewer | HSS / Pick / Capture / Inspection | RTSP 또는 WebSocket 영상 표시, HSS/Capture 녹화, Capture/Inspection 수동 캡처 |
-| Images | Capture | 저장장치 용량/사용률, Capture JPEG 합계, 저장된 JPEG 날짜/목록 조회, 큰 이미지 preview, 확대/축소 |
-| Monitor | HSS / Capture | 여러 카메라 stream 동시 보기, 영상 더블클릭으로 해당 Viewer 이동 |
-| ROI Editor | HSS / Pick | Person 또는 Pallet ROI 편집 |
-| Camera Properties | HSS / Capture | 카메라 runtime property 조절 |
-| Camera Geometry | Pick | 카메라 intrinsic과 로봇 base 기준 extrinsic 위치 관계 조회 |
-| Results | Inspection | 최근 촬영 cycle의 저장 이미지, 검사별 판정·점검 안내, 측정값과 원본 JSON 조회 |
-| References | Inspection | 원본 예시 촬영·박스 편집·리비전 저장, 모델 빌드·검증·명시적 적용·이전 모델 복구 |
+| 뷰어 | HSS / Pick / Capture / Inspection | RTSP 또는 WebSocket 영상 표시, HSS/Capture 녹화, Capture/Inspection 수동 캡처 |
+| 저장 이미지 | Capture | 저장장치 용량/사용률, Capture JPEG 합계, 저장된 JPEG 날짜/목록 조회, 큰 이미지 preview, 확대/축소 |
+| 모니터 | HSS / Capture | 여러 카메라 stream 동시 보기, 영상 더블클릭으로 해당 뷰어 이동 |
+| ROI 편집 | HSS / Pick | Person 또는 Pallet ROI 편집 |
+| 카메라 설정 | HSS / Capture | 카메라 runtime property 조절 |
+| 카메라 위치 | Pick | 카메라 intrinsic과 로봇 base 기준 extrinsic 위치 관계 조회 |
+| 검사 결과 | Inspection | 최근 촬영 cycle의 저장 이미지, 검사별 판정·점검 안내, 측정값과 원본 JSON 조회 |
+| 기준 이미지 | Inspection | 원본 예시 촬영·박스 편집·리비전 저장, 모델 빌드·검증·명시적 적용·이전 모델 복구 |
 
-Pick 연결에서는 `Viewer`, `ROI Editor`, `Camera Geometry`만 보여준다.
-Capture 연결에서는 데스크톱에서 `Viewer`, `Images`, `Monitor`, `Camera Properties`만 보여주고, 폰에서는 `Viewer`, `Images`, `Monitor`만 보여준다. Capture Viewer에서는 `Capture` 버튼으로 `/api/capture/request`를 호출하고, `Record` 버튼으로 `/api/recording/*`를 호출한다. Images 화면은 `/api/captures/*`로 저장된 JPEG와 `capture_dir`가 올라간 저장장치 용량을 조회한다.
+Pick 연결에서는 `뷰어`, `ROI 편집`, `카메라 위치`만 보여준다.
+Capture 연결에서는 데스크톱에서 `뷰어`, `저장 이미지`, `모니터`, `카메라 설정`만 보여주고, 폰에서는 `뷰어`, `저장 이미지`, `모니터`만 보여준다. Capture 뷰어에서는 `촬영` 버튼으로 `/api/capture/request`를 호출하고, `녹화` 버튼으로 `/api/recording/*`를 호출한다. 저장 이미지 화면은 `/api/captures/*`로 저장된 JPEG와 `capture_dir`가 올라간 저장장치 용량을 조회한다.
 
-## Monitor에서 Viewer 열기
+## 모니터에서 뷰어 열기
 
 - 카메라의 영상 영역을 더블클릭하면 Viewer로 이동하고 해당 스트림에 자동 연결한다. 모바일에서는 두 번 탭한다.
 - 연결/해제 및 삭제 버튼은 기존 동작을 유지한다. Monitor를 나가면 모니터 스트림 연결은 해제되고, 다시 들어오면 저장된 카메라 목록에 재연결한다.
 - 다른 호스트의 카메라를 열면 API Base URL의 호스트도 해당 카메라로 변경한다. 기존 API 프로토콜, 포트, API Base Path는 유지한다. 예: `ws://192.168.0.125:8080` → `http://192.168.0.125:8090`.
-- 현재 Viewer와 같은 호스트의 카메라는 기존 API Base URL을 그대로 사용한다. 카메라마다 API 포트가 다르거나 별도 API 서버를 사용하면 Viewer의 `Change URL`에서 직접 지정한다.
+- 현재 Viewer와 같은 호스트의 카메라는 기존 API Base URL을 그대로 사용한다. 카메라마다 API 포트가 다르거나 별도 API 서버를 사용하면 Viewer의 `연결 주소 변경`에서 직접 지정한다.
 - 기존 연결 절차대로 `/api/device-info`와 녹화 상태를 확인한 뒤 연결한다. API 조회 실패 시 오류를 표시하며 다른 카메라로 대신 연결하지 않는다.
 
-## Pick Viewer 스트림
+## Pick 뷰어 스트림
 
-Pick Viewer는 WebSocket `viewer_frame` multi-stream을 받으면 우측 `Streams` 패널에 RGB와 Depth를 나눠 보여준다.
+Pick Viewer는 WebSocket `viewer_frame` multi-stream을 받으면 우측 `영상 목록` 패널에 RGB와 Depth를 나눠 보여준다.
 
 Desktop에서는 Split View를 켜면 왼쪽은 color/RGB JPEG, 오른쪽은 depth JPEG를 기본 선택한다. Depth stream이 없으면 오른쪽 패널은 비어 있다.
 
@@ -176,17 +176,17 @@ Desktop에서는 Split View를 켜면 왼쪽은 color/RGB JPEG, 오른쪽은 dep
 }
 ```
 
-## Inspection Station Viewer
+## Inspection Station 뷰어
 
-Inspect는 `--station`으로 실행해. YAML의 `set_id`에 따라 아래 촬영 버튼을 보여줘. 데스크톱·모바일 모두 스테이션 패널의 대상별 버튼으로 촬영하고, 상단 툴바의 일반 `Capture` 버튼은 표시하지 않아.
+Inspect는 `--station`으로 실행해. YAML의 `set_id`에 따라 아래 촬영 버튼을 보여줘. 데스크톱·모바일 모두 스테이션 패널의 대상별 버튼으로 촬영하고, 상단 툴바의 일반 `촬영` 버튼은 표시하지 않아.
 
 | 실행 프로파일 | 촬영 버튼 | POST 경로 | 검사 대상 |
 | --- | --- | --- | --- |
 | `fastener` | `Stud + Bolt Head` | `/api/capture/bolt-stud` | 스터드 `.101` + 볼트 머리 `.102` |
 | `fastener` | `Nut + Nut Hole` | `/api/capture/nut` | 너트 `.103` + 너트 홀 `.104` |
-| `fastener` | `All Cameras (4)` | `/api/capture/all` | 설정된 네 카메라 |
-| `bolt_stud` | `All Cameras (2)`만 표시 | `/api/capture/all` | 설정된 스터드·볼트 머리 |
-| `nut` | `All Cameras (2)`만 표시 | `/api/capture/all` | 설정된 너트·너트 홀 |
+| `fastener` | `전체 카메라 (4)` | `/api/capture/all` | 설정된 네 카메라 |
+| `bolt_stud` | `전체 카메라 (2)`만 표시 | `/api/capture/all` | 설정된 스터드·볼트 머리 |
+| `nut` | `전체 카메라 (2)`만 표시 | `/api/capture/all` | 설정된 너트·너트 홀 |
 
 POST 본문은 보내지 않아. `group`·`inspection_id`로 검사 대상을 덮어쓰지 않고, 버튼마다 정해진 경로만 호출해. 전체 카메라 수는 상태 응답의 `cameras` 항목 수이며 미리보기 선택이나 `open:true` 개수가 아니야. 카메라 획득 실패도 검사 결과에서 제외하지 않고 장비 오류로 표시해.
 
@@ -208,17 +208,17 @@ ID이며 뒤따르는 JPEG binary frame은 `payload_index` 순서로 매칭된�
 표시하지 않는다.
 
 미리보기는 카메라의 보정 ON/OFF 설정이 적용된 영상이며 Capture 결과와 연결하지 않는다. Capture 결과는
-cycle ID로 별도 폴링하여 Viewer 상단 결과 행에 표시한다.
+cycle ID로 별도 폴링하여 뷰어 상단 결과 행에 표시한다.
 
 Inspect의 결과 파일은 `outputs/{bolt_stud,nut,all}/YYYY-MM-DD/<cycle_id>/`에 저장돼. 결과 JSON의 `storage_path`는 저장 루트 기준 상대 경로이고, Studio의 조회는 계속 `cycle_id`를 사용해. 기존 archive 파일을 결과 API에서 다시 불러오지는 않아.
 
-Inspection의 `Results` 탭은 `GET /api/capture/results`에서 runtime이 보존한
+Inspection의 `검사 결과` 탭은 `GET /api/capture/results`에서 runtime이 보존한
 최근 cycle을 조회한다. Studio가 조회한 완료 cycle은 실행 중 자체 보관하며,
 runtime 재시작이나 서버 이력 제한으로 응답 목록에서 빠져도 제거하지 않는다.
 `last_result`는 다른 요청 결과일 수 있으므로 결과 목록의 대체값으로 사용하지
 않는다.
 
-`Results`는 촬영 시각과 전체 판정 원인을 표시하고 NG·미검출 부위를 먼저 선택한다.
+`검사 결과`는 촬영 시각과 전체 판정 원인을 표시하고 NG·미검출 부위를 먼저 선택한다.
 부위 버튼으로 대상을 바꾸고 `검출 결과` / `원본`으로 검사 당시 저장된 PNG를 비교한다.
 이미지는 `GET /api/capture/results/<cycle_id>/image?inspection_id=<id>&kind=overlay|raw`로 읽으며,
 실시간 카메라나 다른 cycle을 사용하지 않는다. 휠·+/− 확대와 드래그 이동을 지원한다.
@@ -237,16 +237,16 @@ Inspect에 이미지 조회 API를 적용해야 하며 기존 이력도 runtime�
 TLS 프록시를 사용한다.
 
 모델과 리비전은 별도 ID를 사용해 같은 리비전의 여러 빌드를 구분한다.
-References에서는 `Model a0736e17`, `Revision d446ad82`처럼 ID 앞 8자리만 표시한다.
+기준 이미지에서는 `모델 a0736e17`, `개정본 d446ad82`처럼 ID 앞 8자리만 표시한다.
 모델 목록·상세의 `Source`와 활성 모델 표시에서 원본 리비전을 확인하고,
 `Build source`에서 빌드 대상 리비전을 확인한다. 전체 ID는 모델 상세의
 `Full identifiers`를 펼쳐 선택·복사할 수 있다. API와 저장 데이터는 전체 ID를 사용한다.
 
 Models는 빌드 상태, 기술 검증 통과 여부, 원본 리비전과 모델 적용·복구를 표시한다.
 이미지 검증 영역은 제공하지 않는다. 실제 검사 이미지와 판정은 모델 적용 후 새로 촬영해
-`Results`에서 확인한다. 기술 검증 통과는 생산 품질 승인을 의미하지 않는다.
+`검사 결과`에서 확인한다. 기술 검증 통과는 생산 품질 승인을 의미하지 않는다.
 
-모바일 `References` 도구 모음은 상태와 작업 전환 버튼을 여러 줄로 배치해서
+모바일 `기준 이미지` 도구 모음은 상태와 작업 전환 버튼을 여러 줄로 배치해서
 390px 너비에서도 가로 스크롤이나 오버플로 없이 동작한다.
 
 ## 연결 설정
@@ -330,6 +330,19 @@ Inspection station은 `runtime_mode: "station"`을 함께 반환한다. HSS 응�
 | POST | `/api/recording/save` | 녹화 저장 |
 | POST | `/api/recording/cancel` | 녹화 취소 |
 
+## 언어와 글꼴
+
+UI 기본 언어는 한국어야. 메뉴·버튼·도움말·상태·앱 오류 안내와 Flutter 기본 대화상자 문구에 적용해.
+`Bolt Head`, `Stud`, `Nut`, `Nut Hole`, `Plain Hole` 등 부품명과 제품명은 영어로 유지해.
+API 경로·JSON 키·카메라 및 모델 ID·서버가 전달한 원본 진단 정보는 번역하지 않아.
+
+- `assets/fonts/NotoSansCJKkr-Regular.otf` / `NotoSansCJKkr-Bold.otf`: Noto Sans CJK KR 2.004, 일반 400 / 굵게 700
+- 앱 글꼴 이름: `NotoSansKR`. 기본 테마와 이미지 위 표시 글씨에 사용해.
+- 두 글꼴 모두 한글 완성형 11,172자를 포함해. 두 글꼴 파일의 합계는 약 32 MiB야. 시스템 한글 폰트 설치나 실행 중 다운로드가 필요 없어.
+- 출처: [Noto CJK](https://github.com/notofonts/noto-cjk). 원본 TTC의 한국어 글꼴을 개별 OTF로 추출했으며 글리프를 축소하지 않았어.
+- SIL Open Font License 1.1 고지를 `assets/fonts/LICENSE.txt`에 포함하고 Flutter 라이선스 목록에도 등록해.
+- 기본 위젯 번역에는 Flutter SDK의 `flutter_localizations`를 사용해. `flutter pub get` 후 기존 빌드 명령을 실행하면 글꼴과 라이선스가 함께 패키징돼.
+
 ## 디렉터리 구조
 
 ```text
@@ -342,7 +355,8 @@ Inspection station은 `runtime_mode: "station"`을 함께 반환한다. HSS 응�
 │   └── widgets/
 ├── assets/
 │   ├── app_icon.ico
-│   └── app_icon.png
+│   ├── app_icon.png
+│   └── fonts/                # Noto Sans CJK KR 일반·굵게 및 라이선스
 ├── android/
 │   ├── app/src/main/AndroidManifest.xml
 │   └── gradle.properties
@@ -354,7 +368,7 @@ Inspection station은 `runtime_mode: "station"`을 함께 반환한다. HSS 응�
 
 ### 영상 확대·축소와 편집
 
-- Viewer의 JPEG/RTSP 영상, 분할 화면과 Inspection 카메라 타일, Monitor, Camera Properties, Camera Geometry, References, ROI Editor에서 확대·축소할 수 있어.
+- Viewer의 JPEG/RTSP 영상, 분할 화면과 Inspection 카메라 타일, 모니터, 카메라 설정, 카메라 위치, 기준 이미지, ROI Editor에서 확대·축소할 수 있어.
 - 마우스 휠·트랙패드 스크롤로 포인터 위치를 중심으로 확대하고, 오른쪽 아래 `−` / `+` 버튼으로도 조절해. 배율 버튼을 누르면 화면 맞춤으로 돌아가. 화면 맞춤 기준 1~16배야.
 - 일반 영상은 드래그로 이동하고 터치에서는 두 손가락으로 확대·축소해. 실시간 프레임이 바뀌어도 배율과 위치를 유지해.
 - References와 ROI Editor는 기본이 편집 모드야. 확대 후 드래그하면 박스를 그리거나 ROI 꼭짓점을 이동해. 손바닥 버튼으로 이동 모드를 켜면 드래그로 화면을 이동하고 두 손가락으로 확대·축소할 수 있어. 손바닥 버튼을 다시 누르면 편집으로 돌아가.
@@ -363,9 +377,9 @@ Inspection station은 `runtime_mode: "station"`을 함께 반환한다. HSS 응�
 
 ### ROI 실시간 편집
 
-Viewer에 설정한 WebSocket 스트림을 ROI Editor 배경으로 계속 표시한다. Viewer와 ROI Editor 사이에서는 연결을 유지하며, ROI Editor에 직접 들어가도 자동 연결한다. 카메라 프레임 해상도에 맞춰 ROI 좌표와 화면 비율을 동기화한다. `Stream: Live`가 표시되면 영상 위의 꼭짓점을 드래그해서 편집하고 업로드 버튼으로 장비에 저장한다. 연결 실패는 Stream 상태에 표시하며, 정지 이미지 캡처는 사용하지 않는다. ROI 배경 영상은 `ws://` 또는 `wss://` 연결이 필요하다.
+Viewer에 설정한 WebSocket 스트림을 ROI 편집 배경으로 계속 표시한다. Viewer와 ROI 편집 사이에서는 연결을 유지하며, ROI Editor에 직접 들어가도 자동 연결한다. 카메라 프레임 해상도에 맞춰 ROI 좌표와 화면 비율을 동기화한다. `영상: 실시간`가 표시되면 영상 위의 꼭짓점을 드래그해서 편집하고 업로드 버튼으로 장비에 저장한다. 연결 실패는 Stream 상태에 표시하며, 정지 이미지 캡처는 사용하지 않는다. ROI 배경 영상은 `ws://` 또는 `wss://` 연결이 필요하다.
 
-HSS는 `stream_name: camera`, `payload_encoding: jpeg`로 영상을 전송한다. Studio의 Viewer, Monitor, ROI Editor는 이 카메라 영상을 표시하며, ROI 배경도 실시간으로 갱신한다.
+HSS는 `stream_name: camera`, `payload_encoding: jpeg`로 영상을 전송한다. Studio의 뷰어, 모니터, ROI Editor는 이 카메라 영상을 표시하며, ROI 배경도 실시간으로 갱신한다.
 
 ### 카메라별 왜곡 보정 토글
 

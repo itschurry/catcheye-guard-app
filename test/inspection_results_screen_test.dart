@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -54,7 +54,11 @@ Future<void> _mount(
         ),
       ),
       child: MaterialApp(
-        theme: ThemeData.dark(useMaterial3: true),
+        theme: ThemeData(
+          brightness: Brightness.dark,
+          useMaterial3: true,
+          fontFamily: 'NotoSansKR',
+        ),
         home: Scaffold(body: InspectionResultsScreen(api: api)),
       ),
     ),
@@ -70,7 +74,7 @@ void main() {
         final api = _Api();
         await _mount(tester, api, width: width);
         expect(api.images, ['cycle_one/stud/overlay']);
-        expect(find.textContaining('스터드 미검출'), findsWidgets);
+        expect(find.textContaining('Stud 미검출'), findsWidgets);
         expect(find.byType(StationInspectionImage), findsOneWidget);
         expect(find.byType(Image), findsOneWidget);
         // The first image is visible without scrolling through technical JSON.
@@ -85,7 +89,7 @@ void main() {
         await tester.tap(find.text('원본'));
         await tester.pumpAndSettle();
         expect(api.images.last, 'cycle_one/stud/raw');
-        await tester.tap(find.text('볼트 헤드 · 검출'));
+        await tester.tap(find.text('Bolt Head · 검출'));
         await tester.pumpAndSettle();
         expect(api.images.last, 'cycle_one/bolt_head/overlay');
         final count = api.images.length;
@@ -137,7 +141,7 @@ void main() {
     await tester.pump();
     expect(find.byType(Image), findsNothing);
     api.delayed = null;
-    await tester.tap(find.text('볼트 헤드 · 검출'));
+    await tester.tap(find.text('Bolt Head · 검출'));
     await tester.pumpAndSettle();
     delayed.completeError(StateError('stale image failure'));
     await tester.pumpAndSettle();
@@ -172,7 +176,10 @@ void main() {
       await _mount(tester, api);
       final lists = find.byType(InkWell);
       final secondCycle = find
-          .ancestor(of: find.text('볼트·스터드 검사 · 스터드 미검출').at(1), matching: lists)
+          .ancestor(
+            of: find.text('Bolt Head · Stud 검사 · Stud 미검출').at(1),
+            matching: lists,
+          )
           .first;
       await tester.tap(secondCycle);
       await tester.pumpAndSettle();

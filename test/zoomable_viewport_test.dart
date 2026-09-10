@@ -86,16 +86,16 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      await tester.tap(find.byTooltip('Zoom in'));
+      await tester.tap(find.byTooltip('확대'));
       await tester.pump();
-      await tester.tap(find.byTooltip('Move mode: drag to pan, pinch to zoom'));
+      await tester.tap(find.byTooltip('이동 모드: 드래그로 이동, 두 손가락으로 확대·축소'));
       await tester.pump();
       final center = tester.getCenter(find.byType(InteractiveViewer));
       final before = controller(tester).value.clone();
       await drag(tester, center, center + const Offset(20, 15));
       expect(controller(tester).value, isNot(before));
       expect(boxes, isEmpty);
-      await tester.tap(find.byTooltip('Draw mode: drag to edit'));
+      await tester.tap(find.byTooltip('편집 모드: 드래그로 편집'));
       await tester.pump();
       final image = tester.renderObject<RenderBox>(find.byType(Image));
       await drag(
@@ -139,7 +139,7 @@ void main() {
           ),
         ),
       );
-      await tester.tap(find.byTooltip('Zoom in'));
+      await tester.tap(find.byTooltip('확대'));
       await tester.pump();
       final canvas = tester.renderObject<RenderBox>(
         find

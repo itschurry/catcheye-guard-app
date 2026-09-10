@@ -102,25 +102,25 @@ class _MonitorScreenState extends State<MonitorScreen> {
           Icon(Icons.grid_view, size: 20, color: colorScheme.secondary),
           const SizedBox(width: 8),
           const Text(
-            'HSS Monitor',
+            'HSS 모니터',
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
           ),
           const Spacer(),
           OutlinedButton.icon(
             icon: const Icon(Icons.play_arrow, size: 16),
-            label: const Text('Connect All'),
+            label: const Text('모두 연결'),
             onPressed: _cameras.isEmpty ? null : _connectAll,
           ),
           const SizedBox(width: 8),
           OutlinedButton.icon(
             icon: const Icon(Icons.stop, size: 16),
-            label: const Text('Disconnect All'),
+            label: const Text('모두 연결 해제'),
             onPressed: _cameras.isEmpty ? null : _disconnectAll,
           ),
           const SizedBox(width: 8),
           FilledButton.icon(
             icon: const Icon(Icons.add, size: 16),
-            label: const Text('Add Camera'),
+            label: const Text('카메라 추가'),
             onPressed: () => _showAddCameraDialog(context),
           ),
         ],
@@ -139,7 +139,7 @@ class _MonitorScreenState extends State<MonitorScreen> {
           const SizedBox(width: 8),
           const Flexible(
             child: Text(
-              'Monitor',
+              '모니터',
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
@@ -154,7 +154,7 @@ class _MonitorScreenState extends State<MonitorScreen> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Tooltip(
-                    message: 'Connect all',
+                    message: '모두 연결',
                     child: IconButton.outlined(
                       icon: const Icon(Icons.play_arrow, size: 20),
                       onPressed: _cameras.isEmpty ? null : _connectAll,
@@ -162,7 +162,7 @@ class _MonitorScreenState extends State<MonitorScreen> {
                   ),
                   const SizedBox(width: 4),
                   Tooltip(
-                    message: 'Disconnect all',
+                    message: '모두 연결 해제',
                     child: IconButton.outlined(
                       icon: const Icon(Icons.stop, size: 20),
                       onPressed: _cameras.isEmpty ? null : _disconnectAll,
@@ -170,7 +170,7 @@ class _MonitorScreenState extends State<MonitorScreen> {
                   ),
                   const SizedBox(width: 4),
                   Tooltip(
-                    message: 'Add camera',
+                    message: '카메라 추가',
                     child: IconButton.filled(
                       icon: const Icon(Icons.add, size: 20),
                       onPressed: () => _showAddCameraDialog(context),
@@ -194,26 +194,26 @@ class _MonitorScreenState extends State<MonitorScreen> {
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
-          title: const Text('Add camera'),
+          title: const Text('카메라 추가'),
           content: TextField(
             controller: controller,
             autofocus: true,
             decoration: const InputDecoration(
-              labelText: 'Stream URL',
+              labelText: '영상 URL',
               hintText: 'ws://192.168.1.10:8080/',
               border: OutlineInputBorder(),
             ),
-            style: const TextStyle(fontFamily: 'monospace', fontSize: 13),
+            style: const TextStyle(fontFamily: 'NotoSansKR', fontSize: 13),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('Cancel'),
+              child: const Text('취소'),
             ),
             FilledButton(
               onPressed: () =>
                   Navigator.pop(dialogContext, controller.text.trim()),
-              child: const Text('Add'),
+              child: const Text('추가'),
             ),
           ],
         );
@@ -325,7 +325,7 @@ class _MonitorCameraTile extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               _TileHeader(
-                title: 'Camera ${index + 1}',
+                title: '카메라 ${index + 1}',
                 streamUrl: camera.streamUrl,
                 receiver: receiver,
                 onConnect: onConnect,
@@ -334,7 +334,7 @@ class _MonitorCameraTile extends StatelessWidget {
               ),
               Expanded(
                 child: Tooltip(
-                  message: 'Double-click to open in Viewer',
+                  message: '더블클릭하면 뷰어에서 열려',
                   child: GestureDetector(
                     behavior: HitTestBehavior.opaque,
                     onDoubleTap: onOpenViewer,
@@ -414,7 +414,7 @@ class _TileHeader extends StatelessWidget {
             ),
           ),
           IconButton(
-            tooltip: receiver.connected ? 'Disconnect' : 'Connect',
+            tooltip: receiver.connected ? '연결 해제' : '연결',
             icon: Icon(receiver.connected ? Icons.stop : Icons.play_arrow),
             onPressed: receiver.connecting
                 ? null
@@ -423,7 +423,7 @@ class _TileHeader extends StatelessWidget {
                 : onConnect,
           ),
           IconButton(
-            tooltip: 'Remove',
+            tooltip: '삭제',
             icon: const Icon(Icons.close),
             onPressed: onRemove,
           ),
@@ -501,7 +501,7 @@ class _EmptyMonitor extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const Center(
-      child: Text('No cameras', style: TextStyle(color: Colors.grey)),
+      child: Text('등록된 카메라가 없어', style: TextStyle(color: Colors.grey)),
     );
   }
 }

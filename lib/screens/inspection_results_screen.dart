@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import '../widgets/status_label.dart';
 import 'package:provider/provider.dart';
 
 import '../providers/settings_provider.dart';
@@ -102,7 +103,7 @@ class _InspectionResultsScreenState extends State<InspectionResultsScreen> {
     try {
       nextResults = (await _api.fetchStationResults(settings)).results;
     } catch (error) {
-      nextError = 'Failed to load capture results: $error';
+      nextError = '검사 결과 조회 실패: $error';
     } finally {
       if (generation == _requestGeneration) _pollInFlight = false;
     }
@@ -204,7 +205,7 @@ class _InspectionResultsScreenState extends State<InspectionResultsScreen> {
             ),
           ),
           IconButton(
-            tooltip: 'Refresh',
+            tooltip: '새로고침',
             icon: const Icon(Icons.refresh),
             onPressed: _pollInFlight
                 ? null
@@ -387,24 +388,21 @@ class _InspectionResultsScreenState extends State<InspectionResultsScreen> {
             children: [
               Align(
                 alignment: Alignment.centerLeft,
-                child: SelectableText('Cycle ID: ${result.cycleId}'),
+                child: SelectableText('검사 ID: ${result.cycleId}'),
               ),
               Wrap(
                 spacing: 16,
                 runSpacing: 6,
                 children: [
-                  _detailValue('Set', result.setId),
-                  _detailValue('Started', _formatTimestamp(result.startedAtMs)),
-                  _detailValue(
-                    'Finished',
-                    _formatTimestamp(result.finishedAtMs),
-                  ),
+                  _detailValue('검사 구성', result.setId),
+                  _detailValue('시작', _formatTimestamp(result.startedAtMs)),
+                  _detailValue('완료', _formatTimestamp(result.finishedAtMs)),
                 ],
               ),
               TextButton.icon(
                 onPressed: () => _showRawResult(result),
                 icon: const Icon(Icons.data_object),
-                label: const Text('Raw JSON'),
+                label: const Text('원본 JSON'),
               ),
             ],
           ),
@@ -517,7 +515,7 @@ class _InspectionResultsScreenState extends State<InspectionResultsScreen> {
         border: Border.all(color: color),
       ),
       child: Text(
-        status.isEmpty ? 'UNKNOWN' : status,
+        statusLabel(status.isEmpty ? 'UNKNOWN' : status),
         style: TextStyle(color: color, fontSize: 11),
       ),
     );
@@ -530,20 +528,20 @@ class _InspectionResultsScreenState extends State<InspectionResultsScreen> {
     showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Capture result JSON'),
+        title: const Text('촬영 결과 JSON'),
         content: SizedBox(
           width: 760,
           child: SingleChildScrollView(
             child: SelectableText(
               const JsonEncoder.withIndent('  ').convert(json),
-              style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
+              style: const TextStyle(fontFamily: 'NotoSansKR', fontSize: 12),
             ),
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
+            child: const Text('닫기'),
           ),
         ],
       ),
@@ -580,12 +578,9 @@ class _EmptyResults extends StatelessWidget {
         children: [
           Icon(Icons.inbox_outlined, size: 52, color: Colors.white38),
           SizedBox(height: 12),
-          Text('No capture results yet'),
+          Text('아직 검사 결과가 없어'),
           SizedBox(height: 5),
-          Text(
-            'Request a capture from Viewer to create a result.',
-            style: TextStyle(color: Colors.white54),
-          ),
+          Text('뷰어에서 촬영하면 결과가 표시돼.', style: TextStyle(color: Colors.white54)),
         ],
       ),
     );
@@ -593,24 +588,18 @@ class _EmptyResults extends StatelessWidget {
 }
 
 bool _needsCheck(String status) => status != 'PRESENT' && status != 'OK';
-String _statusLabel(String status) => switch (status) {
-  'PRESENT' => '검출',
-  'ABSENT' => '미검출',
-  'RECHECK' => '재확인',
-  'EQUIPMENT_ERROR' => '장비 오류',
-  _ => status,
-};
+String _statusLabel(String status) => statusLabel(status);
 String _partLabel(String id) => switch (id) {
-  'bolt_head' => '볼트 헤드',
-  'stud' => '스터드',
-  'nut_hole' => '너트 홀',
-  'plain_hole' => '일반 홀',
-  'nut' => '너트',
+  'bolt_head' => 'Bolt Head',
+  'stud' => 'Stud',
+  'nut_hole' => 'Nut Hole',
+  'plain_hole' => 'Plain Hole',
+  'nut' => 'Nut',
   _ => id,
 };
 String _groupLabel(String group) => switch (group) {
-  'bolt_stud' => '볼트·스터드 검사',
-  'nut' => '너트 검사',
+  'bolt_stud' => 'Bolt Head · Stud 검사',
+  'nut' => 'Nut 검사',
   '' || 'all' => '전체 검사',
   _ => group,
 };
@@ -619,8 +608,8 @@ String _reasonLabel(String reason) => switch (reason) {
   'NO_CANDIDATE' => '대상 미검출',
   'SHAPE_QUALITY_FAILED' => '형상 기준 미달',
   'SHAPE_QUALITY_OK' => '형상 기준 충족',
-  'PLAIN_HOLE_DETECTED' => '일반 홀 검출',
-  'NUT_HOLE_ABSENT' => '너트 홀 미확인',
+  'PLAIN_HOLE_DETECTED' => 'Plain Hole 검출',
+  'NUT_HOLE_ABSENT' => 'Nut Hole 미확인',
   'GEOMETRY_NOT_FOUND' => '홀 윤곽 측정 실패',
   'QUALITY_LIMITS_NOT_CONFIGURED' => '형상 판정 기준 미설정',
   'LOW_CONFIDENCE_CANDIDATE' => '검출 확정 조건 미충족',
@@ -631,7 +620,7 @@ String _checkLabel(String reason) => switch (reason) {
   'NO_CANDIDATE' || 'NUT_HOLE_ABSENT' => '부품 유무·위치·가림을 먼저 확인하고 조명과 초점 점검',
   'SHAPE_QUALITY_FAILED' => '측정값과 기준을 비교하고 홀 형상·이물·초점 점검',
   'GEOMETRY_NOT_FOUND' => '홀 경계의 초점·조명·반사·이물 확인',
-  'PLAIN_HOLE_DETECTED' => '해당 위치의 너트 홀·부품 장착 상태 확인',
+  'PLAIN_HOLE_DETECTED' => '해당 위치의 Nut Hole·부품 장착 상태 확인',
   'QUALITY_LIMITS_NOT_CONFIGURED' => '장비의 형상 판정 기준 설정 필요',
   'LOW_CONFIDENCE_CANDIDATE' => '후보 위치·검출 점수와 필요한 부품 개수 확인',
   _ => '검사 이미지와 판정 코드를 확인',

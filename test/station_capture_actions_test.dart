@@ -95,7 +95,7 @@ void main() {
         );
         expect(find.byType(DropdownButtonFormField<String>), findsNothing);
         expect(
-          find.text('All Cameras (${profile == 'fastener' ? 4 : 2})'),
+          find.text('전체 카메라 (${profile == 'fastener' ? 4 : 2})'),
           findsOneWidget,
         );
         for (final target in status.captureTargets) {

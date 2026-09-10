@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import '../widgets/status_label.dart';
 import 'package:flutter/gestures.dart';
 import '../widgets/zoomable_viewport.dart';
 import 'package:provider/provider.dart';
@@ -131,7 +132,7 @@ class _ReferenceImagesScreenState extends State<ReferenceImagesScreen> {
                     ),
                     const SizedBox(width: 8),
                     const Text(
-                      'References',
+                      '기준 이미지',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -146,7 +147,7 @@ class _ReferenceImagesScreenState extends State<ReferenceImagesScreen> {
                 if (status?.activeModelId case final activeModel?) ...[
                   const SizedBox(height: 6),
                   Text(
-                    'Active: ${_modelLabel(activeModel)}',
+                    '사용 중: ${_modelLabel(activeModel)}',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
@@ -172,7 +173,7 @@ class _ReferenceImagesScreenState extends State<ReferenceImagesScreen> {
                 ),
                 const SizedBox(width: 8),
                 const Text(
-                  'References',
+                  '기준 이미지',
                   style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                 ),
                 const SizedBox(width: 12),
@@ -181,7 +182,7 @@ class _ReferenceImagesScreenState extends State<ReferenceImagesScreen> {
                   const SizedBox(width: 8),
                   Flexible(
                     child: Text(
-                      'Active: ${_modelLabel(activeModel)}',
+                      '사용 중: ${_modelLabel(activeModel)}',
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         fontSize: 12,
@@ -220,12 +221,12 @@ class _ReferenceImagesScreenState extends State<ReferenceImagesScreen> {
               ButtonSegment(
                 value: _ReferencePage.references,
                 icon: Icon(Icons.crop_free, size: 18),
-                label: Text('References'),
+                label: Text('기준 이미지'),
               ),
               ButtonSegment(
                 value: _ReferencePage.models,
                 icon: Icon(Icons.model_training_outlined, size: 18),
-                label: Text('Models'),
+                label: Text('모델'),
               ),
             ],
       selected: {_page},
@@ -236,7 +237,7 @@ class _ReferenceImagesScreenState extends State<ReferenceImagesScreen> {
 
   Widget _buildRefreshButton() {
     return IconButton.outlined(
-      tooltip: 'Refresh capabilities and revisions',
+      tooltip: '지원 기능과 개정본 새로고침',
       onPressed: _loading ? null : _reload,
       icon: const Icon(Icons.refresh, size: 20),
     );
@@ -249,16 +250,16 @@ class _ReferenceImagesScreenState extends State<ReferenceImagesScreen> {
     if (status == null) {
       return _MessagePanel(
         icon: Icons.extension_off_outlined,
-        title: 'Reference management is unavailable',
-        message: _error ?? 'This device does not advertise Reference API v1.',
+        title: '기준 이미지를 관리할 수 없어',
+        message: _error ?? '이 장비는 Reference API v1을 지원하지 않아.',
         onRetry: _reload,
       );
     }
     if (!status.capabilities.hasReferenceManagement) {
       return _MessagePanel(
         icon: Icons.extension_off_outlined,
-        title: 'Reference management is disabled',
-        message: 'The device capability flags are currently disabled.',
+        title: '기준 이미지 관리가 비활성화돼 있어',
+        message: '장비에서 해당 기능이 비활성화돼 있어.',
         onRetry: _reload,
       );
     }
@@ -300,16 +301,13 @@ class _ReferenceImagesScreenState extends State<ReferenceImagesScreen> {
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          const Text(
-            'Capture source',
-            style: TextStyle(fontWeight: FontWeight.bold),
-          ),
+          const Text('촬영 대상', style: TextStyle(fontWeight: FontWeight.bold)),
           const SizedBox(height: 12),
           DropdownButtonFormField<String>(
             key: ValueKey('reference-camera-$_cameraId'),
             initialValue: _cameraId,
             decoration: const InputDecoration(
-              labelText: 'Camera',
+              labelText: '카메라',
               border: OutlineInputBorder(),
               isDense: true,
             ),
@@ -324,7 +322,7 @@ class _ReferenceImagesScreenState extends State<ReferenceImagesScreen> {
             key: ValueKey('reference-class-$_cameraId-$_className'),
             initialValue: classes.contains(_className) ? _className : null,
             decoration: const InputDecoration(
-              labelText: 'Class',
+              labelText: '분류',
               border: OutlineInputBorder(),
               isDense: true,
             ),
@@ -352,12 +350,12 @@ class _ReferenceImagesScreenState extends State<ReferenceImagesScreen> {
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
                 : const Icon(Icons.camera_alt_outlined),
-            label: Text(_capturing ? 'Capturing…' : 'Capture new image'),
+            label: Text(_capturing ? '촬영 중…' : '새 이미지 촬영'),
           ),
           if (!status.isRunning) ...[
             const SizedBox(height: 8),
             Text(
-              'Capture is available only while the device is RUNNING.',
+              '장비가 실행 중일 때만 촬영할 수 있어.',
               style: TextStyle(
                 fontSize: 12,
                 color: Theme.of(context).colorScheme.error,
@@ -367,7 +365,7 @@ class _ReferenceImagesScreenState extends State<ReferenceImagesScreen> {
           if (!status.capabilities.referenceCapture) ...[
             const SizedBox(height: 8),
             const Text(
-              'Image capture is not enabled on this device.',
+              '이 장비에서는 이미지 촬영이 비활성화돼 있어.',
               style: TextStyle(fontSize: 12),
             ),
           ],
@@ -375,14 +373,11 @@ class _ReferenceImagesScreenState extends State<ReferenceImagesScreen> {
             const SizedBox(height: 18),
             const Divider(),
             const SizedBox(height: 6),
-            const Text(
-              'Capture job',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
+            const Text('촬영 작업', style: TextStyle(fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
             SelectableText(
               capture.captureId,
-              style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
+              style: const TextStyle(fontFamily: 'NotoSansKR', fontSize: 12),
             ),
             const SizedBox(height: 6),
             Row(
@@ -392,7 +387,7 @@ class _ReferenceImagesScreenState extends State<ReferenceImagesScreen> {
                 if (!capture.state.isFinal ||
                     capture.state == ReferenceCaptureState.failed)
                   IconButton(
-                    tooltip: 'Check capture state',
+                    tooltip: '촬영 상태 확인',
                     onPressed: _capturing ? null : _refreshCapture,
                     icon: const Icon(Icons.sync),
                   ),
@@ -412,10 +407,7 @@ class _ReferenceImagesScreenState extends State<ReferenceImagesScreen> {
           const SizedBox(height: 18),
           const Divider(),
           const SizedBox(height: 6),
-          const Text(
-            'Base revision',
-            style: TextStyle(fontWeight: FontWeight.bold),
-          ),
+          const Text('기준 개정본', style: TextStyle(fontWeight: FontWeight.bold)),
           const SizedBox(height: 10),
           DropdownButtonFormField<String>(
             key: ValueKey(
@@ -428,7 +420,7 @@ class _ReferenceImagesScreenState extends State<ReferenceImagesScreen> {
                 ? _baseRevisionId
                 : null,
             decoration: const InputDecoration(
-              labelText: 'Revision',
+              labelText: '개정본',
               border: OutlineInputBorder(),
               isDense: true,
             ),
@@ -450,13 +442,13 @@ class _ReferenceImagesScreenState extends State<ReferenceImagesScreen> {
           if (_revisions.isEmpty) ...[
             const SizedBox(height: 8),
             const Text(
-              'No base revision is available. Revision saving is disabled.',
+              '기준 개정본이 없어서 새 개정본을 저장할 수 없어.',
               style: TextStyle(fontSize: 12),
             ),
           ] else if (_currentRevision != null) ...[
             const SizedBox(height: 12),
             const Text(
-              'Current examples',
+              '현재 기준 이미지',
               style: TextStyle(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 6),
@@ -466,7 +458,7 @@ class _ReferenceImagesScreenState extends State<ReferenceImagesScreen> {
                 contentPadding: EdgeInsets.zero,
                 title: Text(_classLabel(entry.className)),
                 subtitle: Text(
-                  '${entry.width} × ${entry.height} · ${entry.boxes.length} boxes',
+                  '${entry.width} × ${entry.height} · 박스 ${entry.boxes.length}개',
                 ),
                 trailing: const Icon(Icons.open_in_new, size: 18),
                 onTap: _loading ? null : () => _openRevisionEntry(entry),
@@ -482,8 +474,8 @@ class _ReferenceImagesScreenState extends State<ReferenceImagesScreen> {
     if (image == null || _imageBytes == null) {
       return const _MessagePanel(
         icon: Icons.crop_free,
-        title: 'Capture an original image',
-        message: 'Then drag over the image to add one or more bounding boxes.',
+        title: '원본 이미지를 촬영해',
+        message: '이미지 위를 드래그해서 바운딩박스를 추가해.',
       );
     }
     return Container(
@@ -500,7 +492,7 @@ class _ReferenceImagesScreenState extends State<ReferenceImagesScreen> {
                 ),
               ),
               Text(
-                'Drag to add a box',
+                '드래그해서 박스 추가',
                 style: TextStyle(
                   fontSize: 12,
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
@@ -543,7 +535,7 @@ class _ReferenceImagesScreenState extends State<ReferenceImagesScreen> {
             Row(
               children: [
                 const Text(
-                  'Bounding boxes',
+                  '바운딩박스',
                   style: TextStyle(fontWeight: FontWeight.bold),
                 ),
                 const Spacer(),
@@ -555,7 +547,7 @@ class _ReferenceImagesScreenState extends State<ReferenceImagesScreen> {
               child: _boxes.isEmpty
                   ? Center(
                       child: Text(
-                        'No boxes',
+                        '등록된 박스가 없어',
                         style: TextStyle(color: scheme.onSurfaceVariant),
                       ),
                     )
@@ -575,12 +567,12 @@ class _ReferenceImagesScreenState extends State<ReferenceImagesScreen> {
                           title: Text(
                             '[${values.join(', ')}]',
                             style: const TextStyle(
-                              fontFamily: 'monospace',
+                              fontFamily: 'NotoSansKR',
                               fontSize: 12,
                             ),
                           ),
                           trailing: IconButton(
-                            tooltip: 'Remove box',
+                            tooltip: '박스 삭제',
                             onPressed: _saving ? null : () => _removeBox(index),
                             icon: const Icon(Icons.close, size: 18),
                           ),
@@ -594,7 +586,7 @@ class _ReferenceImagesScreenState extends State<ReferenceImagesScreen> {
                   ? null
                   : () => _setBoxes(const []),
               icon: const Icon(Icons.delete_sweep_outlined),
-              label: const Text('Clear boxes'),
+              label: const Text('박스 모두 삭제'),
             ),
             const SizedBox(height: 8),
             FilledButton.icon(
@@ -605,12 +597,12 @@ class _ReferenceImagesScreenState extends State<ReferenceImagesScreen> {
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
                   : const Icon(Icons.save_outlined),
-              label: Text(_saving ? 'Saving…' : 'Save revision'),
+              label: Text(_saving ? '저장 중…' : '개정본 저장'),
             ),
             if (!status.capabilities.referenceRevisions) ...[
               const SizedBox(height: 8),
               const Text(
-                'Revision saving is not enabled on this device.',
+                '이 장비에서는 개정본 저장이 비활성화돼 있어.',
                 style: TextStyle(fontSize: 12),
               ),
             ],
@@ -626,8 +618,8 @@ class _ReferenceImagesScreenState extends State<ReferenceImagesScreen> {
         !status.capabilities.modelActivation) {
       return const _MessagePanel(
         icon: Icons.model_training_outlined,
-        title: 'Model management is disabled',
-        message: 'This device does not advertise model capabilities.',
+        title: '모델 관리가 비활성화돼 있어',
+        message: '이 장비는 모델 관리 기능을 지원하지 않아.',
       );
     }
     final list = Material(
@@ -640,7 +632,7 @@ class _ReferenceImagesScreenState extends State<ReferenceImagesScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Text(
-                  'Model build pauses inspection and live detection while the device is in maintenance.',
+                  '모델을 빌드하는 동안 장비가 유지보수 상태로 전환되어 검사와 실시간 검출이 일시 중지돼.',
                   style: TextStyle(
                     fontSize: 12,
                     color: scheme.onSurfaceVariant,
@@ -650,7 +642,7 @@ class _ReferenceImagesScreenState extends State<ReferenceImagesScreen> {
                 if (_baseRevisionId case final revisionId?) ...[
                   Tooltip(
                     message: revisionId,
-                    child: Text('Build source: ${_displayId(revisionId)}'),
+                    child: Text('빌드 기준: ${_displayId(revisionId)}'),
                   ),
                   const SizedBox(height: 8),
                 ],
@@ -662,7 +654,7 @@ class _ReferenceImagesScreenState extends State<ReferenceImagesScreen> {
                       ? _confirmModelBuild
                       : null,
                   icon: const Icon(Icons.build_outlined),
-                  label: const Text('Build selected revision'),
+                  label: const Text('선택한 개정본으로 빌드'),
                 ),
               ],
             ),
@@ -670,7 +662,7 @@ class _ReferenceImagesScreenState extends State<ReferenceImagesScreen> {
           const Divider(height: 1),
           Expanded(
             child: _models.isEmpty
-                ? const Center(child: Text('No models'))
+                ? const Center(child: Text('등록된 모델이 없어'))
                 : ListView.separated(
                     itemCount: _models.length,
                     separatorBuilder: (_, _) => const Divider(height: 1),
@@ -688,19 +680,19 @@ class _ReferenceImagesScreenState extends State<ReferenceImagesScreen> {
                           child: Text(
                             _displayId(model.modelId),
                             overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(fontFamily: 'monospace'),
+                            style: const TextStyle(fontFamily: 'NotoSansKR'),
                           ),
                         ),
                         isThreeLine: true,
                         subtitle: Tooltip(
                           message: model.referenceRevisionId,
                           child: Text(
-                            'Source: ${_displayId(model.referenceRevisionId)}\n'
+                            '기준: ${_displayId(model.referenceRevisionId)}\n'
                             '${active
-                                ? 'ACTIVE'
+                                ? '사용 중'
                                 : model.technicalPassed
-                                ? 'VALIDATED'
-                                : 'UNVALIDATED'}',
+                                ? '검증 완료'
+                                : '미검증'}',
                           ),
                         ),
                         onTap: () => setState(() {
@@ -743,7 +735,7 @@ class _ReferenceImagesScreenState extends State<ReferenceImagesScreen> {
         children: [
           if (_modelBuild case final build?) ...[
             _JobCard(
-              title: 'Model build',
+              title: '모델 빌드',
               id: build.buildId,
               state: build.state.name.toUpperCase(),
               error: build.error,
@@ -755,11 +747,11 @@ class _ReferenceImagesScreenState extends State<ReferenceImagesScreen> {
           ],
           if (_modelActivation case final activation?) ...[
             _JobCard(
-              title: 'Model activation',
+              title: '모델 적용',
               id: activation.activationId,
               state: _activationStateLabel(activation.state),
               error: activation.error,
-              detail: 'Actual active: ${_modelLabel(activation.activeModelId)}',
+              detail: '현재 사용 중: ${_modelLabel(activation.activeModelId)}',
               onRefresh: !activation.state.isFinal && !_modelActionInFlight
                   ? _resumeModelActivation
                   : null,
@@ -769,8 +761,8 @@ class _ReferenceImagesScreenState extends State<ReferenceImagesScreen> {
           if (model == null)
             const _MessagePanel(
               icon: Icons.memory_outlined,
-              title: 'Select a model',
-              message: 'Review its technical validation before activation.',
+              title: '모델을 선택해',
+              message: '적용하기 전에 기술 검증 결과를 확인해.',
             )
           else ...[
             Row(
@@ -780,7 +772,7 @@ class _ReferenceImagesScreenState extends State<ReferenceImagesScreen> {
                     _displayId(model.modelId),
                     style: Theme.of(
                       context,
-                    ).textTheme.titleLarge?.copyWith(fontFamily: 'monospace'),
+                    ).textTheme.titleLarge?.copyWith(fontFamily: 'NotoSansKR'),
                   ),
                 ),
                 if (model.modelId == status.activeModelId)
@@ -790,19 +782,19 @@ class _ReferenceImagesScreenState extends State<ReferenceImagesScreen> {
             const SizedBox(height: 8),
             Tooltip(
               message: model.referenceRevisionId,
-              child: Text('Source: ${_displayId(model.referenceRevisionId)}'),
+              child: Text('기준: ${_displayId(model.referenceRevisionId)}'),
             ),
-            Text('Created: ${_formatTimestamp(model.createdAtMs)}'),
+            Text('생성: ${_formatTimestamp(model.createdAtMs)}'),
             ExpansionTile(
               key: ValueKey('model-identifiers-${model.modelId}'),
               tilePadding: EdgeInsets.zero,
-              title: const Text('Full identifiers'),
+              title: const Text('전체 식별자'),
               children: [
                 Align(
                   alignment: Alignment.centerLeft,
                   child: SelectableText(
-                    'Model ID: ${model.modelId}\n'
-                    'Source revision ID: ${model.referenceRevisionId}',
+                    '모델 ID: ${model.modelId}\n'
+                    '기준 개정본 ID: ${model.referenceRevisionId}',
                   ),
                 ),
               ],
@@ -821,9 +813,7 @@ class _ReferenceImagesScreenState extends State<ReferenceImagesScreen> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    model.technicalPassed
-                        ? 'Technical validation passed'
-                        : 'Technical validation not passed',
+                    model.technicalPassed ? '기술 검증 통과' : '기술 검증 미통과',
                     style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
                 ),
@@ -837,9 +827,7 @@ class _ReferenceImagesScreenState extends State<ReferenceImagesScreen> {
                 border: Border.all(color: Colors.orange.withValues(alpha: 0.6)),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: const Text(
-                'Technical validation is not production quality approval. Review good and defective samples before activation.',
-              ),
+              child: const Text('기술 검증이 생산 품질을 보증하지는 않아. 적용 전에 양품·불량 샘플로 확인해.'),
             ),
             const SizedBox(height: 14),
             FilledButton.icon(
@@ -862,8 +850,8 @@ class _ReferenceImagesScreenState extends State<ReferenceImagesScreen> {
                                 .firstOrNull
                                 ?.createdAtMs ??
                             0)
-                    ? 'Restore this model'
-                    : 'Activate this model',
+                    ? '이 모델로 복원'
+                    : '이 모델 적용',
               ),
             ),
           ],
@@ -944,7 +932,7 @@ class _ReferenceImagesScreenState extends State<ReferenceImagesScreen> {
             error.uri.path.endsWith('/reference/status');
         if (statusMissing) _status = null;
         _error = statusMissing
-            ? 'Reference API v1 is not installed on this device.'
+            ? '이 장비에 Reference API v1이 설치되어 있지 않아.'
             : error.message;
       });
     } catch (error) {
@@ -1021,7 +1009,7 @@ class _ReferenceImagesScreenState extends State<ReferenceImagesScreen> {
         await _loadCaptureImage(settings, capture, session, token);
       } else if (!capture.state.isFinal) {
         _showMessage(
-          'Capture is still ${capture.state.name}. Use refresh to continue checking it.',
+          '촬영 상태: ${statusLabel(capture.state.name)}. 새로고침으로 계속 확인해.',
         );
       } else if (capture.error.isNotEmpty) {
         _showMessage(capture.error, error: true);
@@ -1097,10 +1085,7 @@ class _ReferenceImagesScreenState extends State<ReferenceImagesScreen> {
     final className = _className;
     if (image == null || className == null || _boxes.isEmpty) return;
     if (_boxes.any((box) => !box.isValidFor(image.width, image.height))) {
-      _showMessage(
-        'One or more boxes are outside the original image.',
-        error: true,
-      );
+      _showMessage('원본 이미지 범위를 벗어난 박스가 있어.', error: true);
       return;
     }
     setState(() => _saving = true);
@@ -1130,7 +1115,7 @@ class _ReferenceImagesScreenState extends State<ReferenceImagesScreen> {
           ..._revisions.where((item) => item.revisionId != revision.revisionId),
         ];
       });
-      _showMessage('${_displayId(revision.revisionId)} was saved.');
+      _showMessage('${_displayId(revision.revisionId)} 저장 완료.');
       unawaited(_reload());
     } catch (error) {
       if (mounted) _showMessage(_describeError(error), error: true);
@@ -1238,7 +1223,7 @@ class _ReferenceImagesScreenState extends State<ReferenceImagesScreen> {
             const <MapEntry<String, List<String>>>[]) {
       if (entry.value.contains(className)) return entry.key;
     }
-    throw FormatException('No camera is mapped to class $className');
+    throw FormatException('$className 분류에 연결된 카메라가 없어');
   }
 
   Future<void> _confirmModelBuild() async {
@@ -1250,7 +1235,7 @@ class _ReferenceImagesScreenState extends State<ReferenceImagesScreen> {
       barrierDismissible: false,
       builder: (dialogContext) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          title: const Text('Build a candidate model?'),
+          title: const Text('후보 모델을 빌드할까?'),
           content: SizedBox(
             width: 520,
             child: Column(
@@ -1259,17 +1244,17 @@ class _ReferenceImagesScreenState extends State<ReferenceImagesScreen> {
               children: [
                 Tooltip(
                   message: revisionId,
-                  child: Text('Build source: ${_displayId(revisionId)}'),
+                  child: Text('빌드 기준: ${_displayId(revisionId)}'),
                 ),
                 const SizedBox(height: 12),
                 const Text(
-                  'Inspection requests and live detection will pause while the device exports, builds, and validates the model. The current model is restored after the build.',
+                  '모델 내보내기·빌드·검증 중에는 검사 요청과 실시간 검출이 일시 중지돼. 빌드가 끝나면 현재 모델로 복원돼.',
                 ),
                 const SizedBox(height: 12),
                 CheckboxListTile(
                   value: confirmed,
                   contentPadding: EdgeInsets.zero,
-                  title: const Text('I approve the maintenance interruption.'),
+                  title: const Text('유지보수를 위한 일시 중지에 동의해.'),
                   onChanged: (value) =>
                       setDialogState(() => confirmed = value ?? false),
                 ),
@@ -1279,13 +1264,13 @@ class _ReferenceImagesScreenState extends State<ReferenceImagesScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogContext, false),
-              child: const Text('Cancel'),
+              child: const Text('취소'),
             ),
             FilledButton(
               onPressed: confirmed
                   ? () => Navigator.pop(dialogContext, true)
                   : null,
-              child: const Text('Approve and build'),
+              child: const Text('동의하고 빌드'),
             ),
           ],
         ),
@@ -1372,15 +1357,17 @@ class _ReferenceImagesScreenState extends State<ReferenceImagesScreen> {
     if (!mounted || session != _modelPollSession) return;
     if (build.state == ModelBuildState.succeeded) {
       _showMessage(
-        'Build completed for ${_displayId(build.referenceRevisionId)}. The candidate model is not active.',
+        '${_displayId(build.referenceRevisionId)} 빌드 완료. 후보 모델은 아직 적용되지 않았어.',
       );
     } else if (build.state.isFinal) {
       _showMessage(
-        build.error.isEmpty ? 'Model build ${build.state.name}.' : build.error,
+        build.error.isEmpty
+            ? '모델 빌드: ${statusLabel(build.state.name)}.'
+            : build.error,
         error: true,
       );
     } else {
-      _showMessage('Build is still running. Use refresh to continue polling.');
+      _showMessage('빌드가 진행 중이야. 새로고침으로 상태를 계속 확인해.');
     }
     await _reload();
   }
@@ -1399,28 +1386,24 @@ class _ReferenceImagesScreenState extends State<ReferenceImagesScreen> {
       barrierDismissible: false,
       builder: (dialogContext) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          title: Text(
-            restoring ? 'Restore previous model?' : 'Activate candidate model?',
-          ),
+          title: Text(restoring ? '이전 모델로 복원할까?' : '후보 모델을 적용할까?'),
           content: SizedBox(
             width: 560,
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Current: ${_modelLabel(current)}'),
-                Text('Requested: ${_modelLabel(model.modelId)}'),
+                Text('현재: ${_modelLabel(current)}'),
+                Text('요청: ${_modelLabel(model.modelId)}'),
                 const SizedBox(height: 12),
                 const Text(
-                  'Technical validation does not certify production accuracy. Activation pauses inspection, and a load failure may roll back to the current model.',
+                  '기술 검증이 생산 정확도를 보증하지는 않아. 적용 중에는 검사가 일시 중지되고, 로딩에 실패하면 장비가 현재 모델로 복원할 수 있어.',
                 ),
                 const SizedBox(height: 12),
                 CheckboxListTile(
                   value: reviewed,
                   contentPadding: EdgeInsets.zero,
-                  title: const Text(
-                    'I reviewed good and defective samples and approve this model switch.',
-                  ),
+                  title: const Text('양품·불량 샘플을 확인했고 모델 변경에 동의해.'),
                   onChanged: (value) =>
                       setDialogState(() => reviewed = value ?? false),
                 ),
@@ -1430,13 +1413,13 @@ class _ReferenceImagesScreenState extends State<ReferenceImagesScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(dialogContext, false),
-              child: const Text('Cancel'),
+              child: const Text('취소'),
             ),
             FilledButton(
               onPressed: reviewed
                   ? () => Navigator.pop(dialogContext, true)
                   : null,
-              child: Text(restoring ? 'Approve restore' : 'Approve activation'),
+              child: Text(restoring ? '동의하고 복원' : '동의하고 적용'),
             ),
           ],
         ),
@@ -1537,23 +1520,21 @@ class _ReferenceImagesScreenState extends State<ReferenceImagesScreen> {
     }
     if (!mounted || session != _modelPollSession) return;
     if (activation.state == ModelActivationState.succeeded) {
-      _showMessage('${_modelLabel(activation.activeModelId)} is now active.');
+      _showMessage('${_modelLabel(activation.activeModelId)} 적용 완료.');
     } else if (activation.state == ModelActivationState.rolledBack) {
       _showMessage(
-        'Activation failed and ${_modelLabel(activation.activeModelId)} was restored.',
+        '적용에 실패해서 ${_modelLabel(activation.activeModelId)}로 복원됐어.',
         error: true,
       );
     } else if (activation.state.isFinal) {
       _showMessage(
         activation.error.isEmpty
-            ? 'Activation ${activation.state.name}.'
+            ? '모델 적용: ${statusLabel(activation.state.name)}.'
             : activation.error,
         error: true,
       );
     } else {
-      _showMessage(
-        'Activation is still running. Use refresh to continue polling.',
-      );
+      _showMessage('모델 적용 중이야. 새로고침으로 상태를 계속 확인해.');
     }
     await _reload();
   }
@@ -1570,7 +1551,7 @@ class _ReferenceImagesScreenState extends State<ReferenceImagesScreen> {
       r'^(model|refrev)_([0-9a-f]{32}|initial)$',
     ).firstMatch(id);
     if (match == null) return id;
-    final kind = match[1] == 'model' ? 'Model' : 'Revision';
+    final kind = match[1] == 'model' ? '모델' : '개정본';
     final suffix = match[2]!;
     return '$kind ${suffix == 'initial' ? suffix : suffix.substring(0, 8)}';
   }
@@ -1590,7 +1571,7 @@ class _ReferenceImagesScreenState extends State<ReferenceImagesScreen> {
       settings,
     );
     if (token == null) {
-      throw StateError('Management token is not configured.');
+      throw StateError('관리 토큰이 설정되지 않았어.');
     }
     return token;
   }
@@ -1652,7 +1633,7 @@ class _JobCard extends StatelessWidget {
                 if (onRefresh != null) ...[
                   const SizedBox(width: 6),
                   IconButton(
-                    tooltip: 'Continue polling this job',
+                    tooltip: '이 작업 상태 계속 확인',
                     onPressed: onRefresh,
                     icon: const Icon(Icons.sync, size: 20),
                   ),
@@ -1661,7 +1642,7 @@ class _JobCard extends StatelessWidget {
             ),
             SelectableText(
               id,
-              style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
+              style: const TextStyle(fontFamily: 'NotoSansKR', fontSize: 12),
             ),
             if (detail != null) ...[
               const SizedBox(height: 5),
@@ -1882,7 +1863,7 @@ class _StateChip extends StatelessWidget {
         borderRadius: BorderRadius.circular(999),
       ),
       child: Text(
-        state,
+        statusLabel(state),
         style: TextStyle(
           color: color.shade200,
           fontSize: 11,
@@ -1929,7 +1910,7 @@ class _MessagePanel extends StatelessWidget {
               OutlinedButton.icon(
                 onPressed: onRetry,
                 icon: const Icon(Icons.refresh),
-                label: const Text('Retry'),
+                label: const Text('다시 시도'),
               ),
             ],
           ],
@@ -1957,10 +1938,10 @@ Offset _clamp(Offset point, Size size) =>
 
 String _classLabel(String className) => switch (className) {
   'stud' => 'Stud (stud)',
-  'bolt_head' => 'Bolt head (bolt_head)',
+  'bolt_head' => 'Bolt Head (bolt_head)',
   'nut' => 'Nut (nut)',
-  'nut_hole' => 'Nut hole (nut_hole)',
-  'plain_hole' => 'Plain hole (plain_hole)',
+  'nut_hole' => 'Nut Hole (nut_hole)',
+  'plain_hole' => 'Plain Hole (plain_hole)',
   _ => className,
 };
 
@@ -1981,6 +1962,6 @@ String _formatTimestamp(int milliseconds) {
 
 String _describeError(Object error) => switch (error) {
   RemoteReferenceApiException() => error.message,
-  TimeoutException() => 'The device did not respond in time.',
+  TimeoutException() => '장비 응답 시간이 초과됐어.',
   _ => error.toString(),
 };

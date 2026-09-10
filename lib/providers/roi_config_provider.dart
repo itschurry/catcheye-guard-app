@@ -62,7 +62,7 @@ class RoiConfigProvider extends ChangeNotifier {
       final config = await RoiConfigService.loadFromFile(path);
       loadFromConfig(config, sourceLabel: path, kind: kind);
     } catch (e) {
-      _state.errorMessage = 'Load failed: $e';
+      _state.errorMessage = '불러오기 실패: $e';
       notifyListeners();
     }
   }
@@ -127,7 +127,7 @@ class RoiConfigProvider extends ChangeNotifier {
     final index = _state.config.allowedZones.length;
     final zone = RoiPolygon(
       id: 'zone_${index + 1}',
-      name: 'new_zone_${index + 1}',
+      name: '새 영역 ${index + 1}',
       enabled: true,
       points: [
         RoiPoint(

@@ -32,7 +32,7 @@ class LiveViewer extends StatelessWidget {
             children: [
               Icon(Icons.videocam_off, size: 48, color: Colors.grey),
               SizedBox(height: 8),
-              Text('No stream', style: TextStyle(color: Colors.grey)),
+              Text('영상 없음', style: TextStyle(color: Colors.grey)),
             ],
           ),
         ),

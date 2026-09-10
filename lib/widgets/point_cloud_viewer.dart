@@ -413,7 +413,7 @@ class _PointCloudPainter extends CustomPainter {
         style: const TextStyle(
           color: Color(0xFFFFEA00),
           fontSize: 11,
-          fontFamily: 'monospace',
+          fontFamily: 'NotoSansKR',
           shadows: [Shadow(color: Colors.black, blurRadius: 3)],
         ),
       ),
@@ -535,7 +535,7 @@ class _PointCloudPainter extends CustomPainter {
         style: const TextStyle(
           color: Colors.white70,
           fontSize: 10,
-          fontFamily: 'monospace',
+          fontFamily: 'NotoSansKR',
         ),
       ),
       textDirection: TextDirection.ltr,
@@ -567,7 +567,7 @@ class _PointCloudPainter extends CustomPainter {
   void _drawEmpty(Canvas canvas, Size size) {
     final textPainter = TextPainter(
       text: const TextSpan(
-        text: 'No points in depth range',
+        text: '설정한 깊이 범위에 점이 없어',
         style: TextStyle(color: Colors.grey, fontSize: 14),
       ),
       textDirection: TextDirection.ltr,

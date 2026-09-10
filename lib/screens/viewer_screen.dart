@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import '../widgets/status_label.dart';
 import 'package:provider/provider.dart';
 
 import '../models/app_settings.dart';
@@ -371,10 +372,7 @@ class _ViewerScreenState extends State<ViewerScreen>
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const Text(
-                  'Stream',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
+                const Text('영상', style: TextStyle(fontWeight: FontWeight.bold)),
                 const SizedBox(height: 10),
                 for (final stream in streams)
                   ListTile(
@@ -386,9 +384,9 @@ class _ViewerScreenState extends State<ViewerScreen>
                     ),
                     subtitle: Text(
                       stream.isPointCloud
-                          ? '${stream.pointCount} pts'
+                          ? '${stream.pointCount}개 점'
                           : stream.size == null
-                          ? 'unknown size'
+                          ? '크기 알 수 없음'
                           : '${stream.size!.width.toInt()} x ${stream.size!.height.toInt()}',
                     ),
                     selected: stream.key == receiver.selectedStreamKey,
@@ -403,7 +401,7 @@ class _ViewerScreenState extends State<ViewerScreen>
                     Navigator.pop(sheetContext);
                     _showPhoneAdvancedSheet(receiver);
                   },
-                  child: const Text('Advanced controls'),
+                  child: const Text('고급 설정'),
                 ),
               ],
             ),
@@ -513,7 +511,7 @@ class _ViewerScreenState extends State<ViewerScreen>
             child: _buildSplitPanel(
               receiver: receiver,
               stream: leftStream,
-              missingLabel: 'Left',
+              missingLabel: '왼쪽',
             ),
           ),
           const SizedBox(width: 8),
@@ -521,7 +519,7 @@ class _ViewerScreenState extends State<ViewerScreen>
             child: _buildSplitPanel(
               receiver: receiver,
               stream: rightStream,
-              missingLabel: 'Right',
+              missingLabel: '오른쪽',
             ),
           ),
         ],
@@ -678,7 +676,7 @@ class _ViewerScreenState extends State<ViewerScreen>
         color: Colors.black,
         child: Center(
           child: Text(
-            'Unsupported stream encoding: ${selectedFrame.encoding.name}',
+            '지원하지 않는 영상 인코딩: ${selectedFrame.encoding.name}',
             style: const TextStyle(color: Colors.grey),
           ),
         ),
@@ -778,7 +776,7 @@ class _ViewerScreenState extends State<ViewerScreen>
           color: Colors.black,
           alignment: Alignment.center,
           child: const Text(
-            'Waiting for camera stream',
+            '카메라 영상 대기 중',
             style: TextStyle(color: Colors.grey),
           ),
         );
@@ -815,7 +813,7 @@ class _ViewerScreenState extends State<ViewerScreen>
       color: Colors.black,
       alignment: Alignment.center,
       child: Text(
-        'Unsupported stream encoding: ${stream.encoding.name}',
+        '지원하지 않는 영상 인코딩: ${stream.encoding.name}',
         style: const TextStyle(color: Colors.grey),
       ),
     );
@@ -957,7 +955,7 @@ class _ViewerScreenState extends State<ViewerScreen>
           Icon(Icons.live_tv, size: 20, color: colorScheme.secondary),
           const SizedBox(width: 8),
           const Text(
-            'Live Viewer',
+            '실시간 영상',
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
           ),
           const SizedBox(width: 24),
@@ -966,7 +964,7 @@ class _ViewerScreenState extends State<ViewerScreen>
           if (!receiver.connected && !receiver.connecting) ...[
             FilledButton.icon(
               icon: const Icon(Icons.power, size: 16),
-              label: const Text('Connect'),
+              label: const Text('연결'),
               onPressed: () => _connect(
                 context: context,
                 receiver: receiver,
@@ -977,7 +975,7 @@ class _ViewerScreenState extends State<ViewerScreen>
             const SizedBox(width: 8),
             OutlinedButton.icon(
               icon: const Icon(Icons.link, size: 16),
-              label: const Text('Change URL'),
+              label: const Text('연결 주소 변경'),
               onPressed: () => _showConnectDialog(
                 context,
                 receiver,
@@ -992,7 +990,7 @@ class _ViewerScreenState extends State<ViewerScreen>
               child: CircularProgressIndicator(strokeWidth: 2),
             ),
             const SizedBox(width: 8),
-            const Text('Connecting...', style: TextStyle(fontSize: 13)),
+            const Text('연결 중...', style: TextStyle(fontSize: 13)),
           ] else ...[
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -1007,7 +1005,7 @@ class _ViewerScreenState extends State<ViewerScreen>
                   Icon(Icons.circle, size: 8, color: Colors.green),
                   SizedBox(width: 6),
                   Text(
-                    'Connected',
+                    '연결됨',
                     style: TextStyle(fontSize: 12, color: Colors.green),
                   ),
                 ],
@@ -1016,7 +1014,7 @@ class _ViewerScreenState extends State<ViewerScreen>
             const SizedBox(width: 8),
             OutlinedButton.icon(
               icon: const Icon(Icons.power_off, size: 16),
-              label: const Text('Disconnect'),
+              label: const Text('연결 해제'),
               onPressed: () => _disconnect(receiver),
             ),
           ],
@@ -1041,7 +1039,7 @@ class _ViewerScreenState extends State<ViewerScreen>
           const Spacer(),
           if (remoteDeviceKind == RemoteDeviceKind.inspection) ...[
             Tooltip(
-              message: 'Management credentials',
+              message: '관리 인증 설정',
               child: IconButton.outlined(
                 icon: const Icon(Icons.admin_panel_settings_outlined, size: 20),
                 onPressed: _showManagementCredentialsDialog,
@@ -1056,7 +1054,7 @@ class _ViewerScreenState extends State<ViewerScreen>
           if (captureControlsEnabled && receiver.connected) ...[
             FilledButton.icon(
               icon: const Icon(Icons.camera_alt_outlined, size: 16),
-              label: const Text('Capture'),
+              label: const Text('촬영'),
               onPressed: _captureActionInFlight
                   ? null
                   : () => _requestCapture(settings),
@@ -1068,7 +1066,7 @@ class _ViewerScreenState extends State<ViewerScreen>
               receiver.connected &&
               receiver.isWebSocket) ...[
             Tooltip(
-              message: _splitView ? 'Single view' : 'Split view',
+              message: _splitView ? '단일 화면' : '분할 화면',
               child: IconButton(
                 icon: Icon(
                   _splitView
@@ -1088,14 +1086,14 @@ class _ViewerScreenState extends State<ViewerScreen>
           if (splitViewEnabled && isPhone && receiver.connected) ...[
             OutlinedButton.icon(
               icon: const Icon(Icons.layers_outlined, size: 16),
-              label: const Text('Streams'),
+              label: const Text('영상 목록'),
               onPressed: () => _showPhoneStreamSheet(receiver),
             ),
             const SizedBox(width: 8),
             if (receiver.streams.length > 1)
               OutlinedButton.icon(
                 icon: const Icon(Icons.tune_outlined, size: 16),
-                label: const Text('Advanced'),
+                label: const Text('고급 설정'),
                 onPressed: () => _showPhoneAdvancedSheet(receiver),
               ),
             const SizedBox(width: 8),
@@ -1138,7 +1136,7 @@ class _ViewerScreenState extends State<ViewerScreen>
           const SizedBox(width: 8),
           const Flexible(
             child: Text(
-              'Viewer',
+              '뷰어',
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
@@ -1154,7 +1152,7 @@ class _ViewerScreenState extends State<ViewerScreen>
                 children: [
                   if (!receiver.connected && !receiver.connecting) ...[
                     Tooltip(
-                      message: 'Connect',
+                      message: '연결',
                       child: IconButton.filled(
                         icon: const Icon(Icons.power, size: 20),
                         onPressed: () => _connect(
@@ -1167,7 +1165,7 @@ class _ViewerScreenState extends State<ViewerScreen>
                     ),
                     const SizedBox(width: 4),
                     Tooltip(
-                      message: 'Change URL',
+                      message: '연결 주소 변경',
                       child: IconButton.outlined(
                         icon: const Icon(Icons.link, size: 20),
                         onPressed: () => _showConnectDialog(
@@ -1185,7 +1183,7 @@ class _ViewerScreenState extends State<ViewerScreen>
                       child: CircularProgressIndicator(strokeWidth: 2),
                     ),
                     const SizedBox(width: 8),
-                    const Text('Connecting...', style: TextStyle(fontSize: 13)),
+                    const Text('연결 중...', style: TextStyle(fontSize: 13)),
                   ] else ...[
                     Container(
                       width: 10,
@@ -1197,7 +1195,7 @@ class _ViewerScreenState extends State<ViewerScreen>
                     ),
                     const SizedBox(width: 6),
                     Tooltip(
-                      message: 'Disconnect',
+                      message: '연결 해제',
                       child: IconButton.outlined(
                         icon: const Icon(Icons.power_off, size: 20),
                         onPressed: () => _disconnect(receiver),
@@ -1207,7 +1205,7 @@ class _ViewerScreenState extends State<ViewerScreen>
                   if (splitViewEnabled && receiver.connected) ...[
                     const SizedBox(width: 4),
                     Tooltip(
-                      message: 'Streams',
+                      message: '영상 목록',
                       child: IconButton.outlined(
                         icon: const Icon(Icons.layers_outlined, size: 20),
                         onPressed: () => _showPhoneStreamSheet(receiver),
@@ -1216,7 +1214,7 @@ class _ViewerScreenState extends State<ViewerScreen>
                     if (receiver.streams.length > 1) ...[
                       const SizedBox(width: 4),
                       Tooltip(
-                        message: 'Advanced controls',
+                        message: '고급 설정',
                         child: IconButton.outlined(
                           icon: const Icon(Icons.tune_outlined, size: 20),
                           onPressed: () => _showPhoneAdvancedSheet(receiver),
@@ -1227,7 +1225,7 @@ class _ViewerScreenState extends State<ViewerScreen>
                   if (remoteDeviceKind == RemoteDeviceKind.inspection) ...[
                     const SizedBox(width: 4),
                     Tooltip(
-                      message: 'Management credentials',
+                      message: '관리 인증 설정',
                       child: IconButton.outlined(
                         icon: const Icon(
                           Icons.admin_panel_settings_outlined,
@@ -1240,7 +1238,7 @@ class _ViewerScreenState extends State<ViewerScreen>
                   if (captureControlsEnabled && receiver.connected) ...[
                     const SizedBox(width: 4),
                     Tooltip(
-                      message: 'Capture',
+                      message: '촬영',
                       child: IconButton.outlined(
                         icon: const Icon(Icons.camera_alt_outlined, size: 20),
                         onPressed: _captureActionInFlight
@@ -1256,7 +1254,7 @@ class _ViewerScreenState extends State<ViewerScreen>
                   if (showRoiAlertOff) ...[
                     const SizedBox(width: 4),
                     Tooltip(
-                      message: 'ROI Alert Off',
+                      message: 'ROI 경고 꺼짐',
                       child: IconButton.outlined(
                         icon: const Icon(
                           Icons.warning_amber_outlined,
@@ -1305,7 +1303,7 @@ class _ViewerScreenState extends State<ViewerScreen>
           ),
           SizedBox(width: 6),
           Text(
-            'ROI Alert Off',
+            'ROI 경고 꺼짐',
             style: TextStyle(fontSize: 12, color: Colors.amberAccent),
           ),
         ],
@@ -1320,7 +1318,7 @@ class _ViewerScreenState extends State<ViewerScreen>
 
     if (state == RemoteRecordingState.idle) {
       return Tooltip(
-        message: 'Record',
+        message: '녹화',
         child: IconButton.outlined(
           icon: const Icon(Icons.fiber_manual_record, size: 20),
           color: Colors.redAccent,
@@ -1335,7 +1333,7 @@ class _ViewerScreenState extends State<ViewerScreen>
       mainAxisSize: MainAxisSize.min,
       children: [
         Tooltip(
-          message: 'Save',
+          message: '저장',
           child: IconButton.outlined(
             icon: const Icon(Icons.save, size: 20),
             onPressed: busy
@@ -1343,14 +1341,14 @@ class _ViewerScreenState extends State<ViewerScreen>
                 : () => _runRecordingAction(
                     (api) => api.save(settings),
                     successMessage: (next) => next.savedPath.isEmpty
-                        ? 'Recording saved'
-                        : 'Recording saved: ${next.savedPath}',
+                        ? '녹화 저장 완료'
+                        : '녹화 저장 완료: ${next.savedPath}',
                   ),
           ),
         ),
         const SizedBox(width: 4),
         Tooltip(
-          message: state == RemoteRecordingState.paused ? 'Resume' : 'Pause',
+          message: state == RemoteRecordingState.paused ? '재개' : '일시 중지',
           child: IconButton.outlined(
             icon: Icon(
               state == RemoteRecordingState.paused
@@ -1369,7 +1367,7 @@ class _ViewerScreenState extends State<ViewerScreen>
         ),
         const SizedBox(width: 4),
         Tooltip(
-          message: 'Cancel',
+          message: '취소',
           child: IconButton.outlined(
             icon: const Icon(Icons.close, size: 20),
             onPressed: busy
@@ -1389,7 +1387,7 @@ class _ViewerScreenState extends State<ViewerScreen>
     if (state == RemoteRecordingState.idle) {
       return FilledButton.icon(
         icon: const Icon(Icons.fiber_manual_record, size: 16),
-        label: const Text('Record'),
+        label: const Text('녹화'),
         onPressed: busy
             ? null
             : () => _runRecordingAction((api) => api.start(settings)),
@@ -1402,20 +1400,20 @@ class _ViewerScreenState extends State<ViewerScreen>
       children: [
         OutlinedButton.icon(
           icon: const Icon(Icons.save, size: 16),
-          label: const Text('Save'),
+          label: const Text('저장'),
           onPressed: busy
               ? null
               : () => _runRecordingAction(
                   (api) => api.save(settings),
                   successMessage: (next) => next.savedPath.isEmpty
-                      ? 'Recording saved'
-                      : 'Recording saved: ${next.savedPath}',
+                      ? '녹화 저장 완료'
+                      : '녹화 저장 완료: ${next.savedPath}',
                 ),
         ),
         const SizedBox(width: 8),
         OutlinedButton.icon(
           icon: Icon(isPaused ? Icons.play_arrow : Icons.pause, size: 16),
-          label: Text(isPaused ? 'Resume' : 'Pause'),
+          label: Text(isPaused ? '재개' : '일시 중지'),
           onPressed: busy
               ? null
               : () => _runRecordingAction(
@@ -1426,7 +1424,7 @@ class _ViewerScreenState extends State<ViewerScreen>
         const SizedBox(width: 8),
         OutlinedButton.icon(
           icon: const Icon(Icons.close, size: 16),
-          label: const Text('Cancel'),
+          label: const Text('취소'),
           onPressed: busy
               ? null
               : () => _runRecordingAction((api) => api.cancel(settings)),
@@ -1446,7 +1444,7 @@ class _ViewerScreenState extends State<ViewerScreen>
     final selectedFrame = receiver.selectedFrame;
     final selectedSize = selectedFrame?.size;
     final resolutionText = selectedSize == null
-        ? 'N/A'
+        ? '정보 없음'
         : '${selectedSize.width.toInt()} x ${selectedSize.height.toInt()}';
 
     return Container(
@@ -1457,12 +1455,12 @@ class _ViewerScreenState extends State<ViewerScreen>
         child: Row(
           children: [
             _StatusChip(
-              label: 'Status',
+              label: '상태',
               value: receiver.connected
-                  ? 'Connected'
+                  ? '연결됨'
                   : receiver.connecting
-                  ? 'Connecting'
-                  : 'Disconnected',
+                  ? '연결 중'
+                  : '연결 끊김',
               valueWidth: 82,
               color: receiver.connected ? Colors.green : Colors.grey,
             ),
@@ -1473,7 +1471,7 @@ class _ViewerScreenState extends State<ViewerScreen>
                   ? '-'
                   : receiver.isWebSocket
                   ? receiver.fps.toStringAsFixed(1)
-                  : 'N/A (RTSP)',
+                  : '정보 없음 (RTSP)',
               valueWidth: 34,
               color: !connected
                   ? Colors.grey
@@ -1487,12 +1485,12 @@ class _ViewerScreenState extends State<ViewerScreen>
             ),
             const SizedBox(width: 14),
             _StatusChip(
-              label: 'Frames',
+              label: '프레임 수',
               value: !connected
                   ? '-'
                   : receiver.isWebSocket
                   ? '${receiver.frameCount}'
-                  : 'N/A (RTSP)',
+                  : '정보 없음 (RTSP)',
               valueWidth: 72,
               color: connected && receiver.isWebSocket
                   ? Colors.cyan
@@ -1500,14 +1498,14 @@ class _ViewerScreenState extends State<ViewerScreen>
             ),
             const SizedBox(width: 14),
             _StatusChip(
-              label: 'Inference',
+              label: '추론 시간',
               value: !connected
                   ? '-'
                   : receiver.isWebSocket
                   ? inferenceMs == null
-                        ? 'N/A'
+                        ? '정보 없음'
                         : '${inferenceMs.toStringAsFixed(1)} ms'
-                  : 'N/A (RTSP)',
+                  : '정보 없음 (RTSP)',
               valueWidth: 54,
               color: !connected || inferenceMs == null
                   ? Colors.grey
@@ -1519,12 +1517,12 @@ class _ViewerScreenState extends State<ViewerScreen>
             ),
             const SizedBox(width: 14),
             _StatusChip(
-              label: 'Wall',
+              label: '전체 처리 시간',
               value: !connected
                   ? '-'
                   : receiver.isWebSocket
-                  ? wallClockText ?? 'N/A'
-                  : 'N/A (RTSP)',
+                  ? wallClockText ?? '정보 없음'
+                  : '정보 없음 (RTSP)',
               valueWidth: 132,
               color: !connected || wallClockText == null
                   ? Colors.grey
@@ -1532,19 +1530,19 @@ class _ViewerScreenState extends State<ViewerScreen>
             ),
             const SizedBox(width: 14),
             _StatusChip(
-              label: 'Transport',
+              label: '전송 방식',
               value: receiver.isWebSocket
                   ? 'WebSocket'
                   : receiver.isRtsp
                   ? 'RTSP'
-                  : 'Idle',
+                  : '대기',
               valueWidth: 72,
               color: receiver.connected ? Colors.blueAccent : Colors.grey,
             ),
             const SizedBox(width: 14),
             _StatusChip(
-              label: 'Stream',
-              value: !connected ? '-' : selectedFrame?.label ?? 'N/A',
+              label: '영상',
+              value: !connected ? '-' : selectedFrame?.label ?? '정보 없음',
               valueWidth: 74,
               color: connected && selectedFrame != null
                   ? Colors.lightBlueAccent
@@ -1552,7 +1550,7 @@ class _ViewerScreenState extends State<ViewerScreen>
             ),
             const SizedBox(width: 14),
             _StatusChip(
-              label: 'Resolution',
+              label: '해상도',
               value: !connected ? '-' : resolutionText,
               valueWidth: 82,
               color: connected && selectedSize != null
@@ -1627,15 +1625,15 @@ class _ViewerScreenState extends State<ViewerScreen>
             const Duration(seconds: 3);
     String? waitingMessage;
     if (cameraId.isEmpty) {
-      waitingMessage = 'Select a camera for slot ${slotIndex + 1}';
+      waitingMessage = '${slotIndex + 1}번 화면의 카메라를 선택해';
     } else if (!receiver.connected) {
-      waitingMessage = 'Disconnected';
+      waitingMessage = '연결 끊김';
     } else if (_stationSourceActionInFlight) {
-      waitingMessage = 'Updating multi-stream selection...';
+      waitingMessage = '카메라 선택 적용 중...';
     } else if (frame == null || !isFresh) {
       waitingMessage = cameraStatus?.lastError.isNotEmpty == true
           ? cameraStatus!.lastError
-          : 'Waiting for a fresh preview: $cameraId';
+          : '새 영상 대기 중: $cameraId';
     }
 
     final selected = frame != null && frame.key == receiver.selectedStreamKey;
@@ -1682,7 +1680,7 @@ class _ViewerScreenState extends State<ViewerScreen>
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: Text(
-                  cameraId.isEmpty ? 'Slot ${slotIndex + 1}' : cameraId,
+                  cameraId.isEmpty ? '화면 ${slotIndex + 1}' : cameraId,
                   style: const TextStyle(fontSize: 12, color: Colors.white),
                 ),
               ),
@@ -1713,9 +1711,9 @@ class _ViewerScreenState extends State<ViewerScreen>
         ? null
         : _stationCycles[selectedCycleId];
     final queueText = status == null
-        ? 'Queue: loading'
-        : 'Queue: ${status.pendingCount}/${status.maxPendingCaptures}'
-              '${status.busy ? ' + active' : ''}';
+        ? '대기열: 조회 중'
+        : '대기열: ${status.pendingCount}/${status.maxPendingCaptures}'
+              '${status.busy ? ' + 검사 중' : ''}';
 
     return Container(
       width: double.infinity,
@@ -1731,9 +1729,7 @@ class _ViewerScreenState extends State<ViewerScreen>
               crossAxisAlignment: WrapCrossAlignment.center,
               children: [
                 Text(
-                  status == null
-                      ? 'Inspection Station'
-                      : 'Inspection Station: ${status.setId}',
+                  status == null ? '검사 장비' : '검사 장비: ${status.setId}',
                   style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
                 SegmentedButton<StationViewerLayout>(
@@ -1773,14 +1769,14 @@ class _ViewerScreenState extends State<ViewerScreen>
                           initialValue: _stationCameraForSlot(slot),
                           isExpanded: true,
                           decoration: InputDecoration(
-                            labelText: 'Camera ${slot + 1}',
+                            labelText: '카메라 ${slot + 1}',
                             isDense: true,
                             border: const OutlineInputBorder(),
                           ),
                           items: [
                             const DropdownMenuItem(
                               value: '',
-                              child: Text('Empty'),
+                              child: Text('비어 있음'),
                             ),
                             for (final cameraId in cameraIds)
                               DropdownMenuItem(
@@ -1839,12 +1835,12 @@ class _ViewerScreenState extends State<ViewerScreen>
                 Text(queueText, style: const TextStyle(fontSize: 12)),
                 if (status != null)
                   Text(
-                    'Captured: ${status.captureCount}',
+                    '촬영: ${status.captureCount}',
                     style: const TextStyle(color: Colors.white60, fontSize: 12),
                   ),
                 if (status?.activeCycleId.isNotEmpty == true)
                   Text(
-                    'Active: ${_shortCycleId(status!.activeCycleId)}',
+                    '검사 중: ${_shortCycleId(status!.activeCycleId)}',
                     style: const TextStyle(
                       color: Colors.lightBlueAccent,
                       fontSize: 12,
@@ -1852,12 +1848,12 @@ class _ViewerScreenState extends State<ViewerScreen>
                   ),
                 if (status?.ready == false)
                   const Text(
-                    'Station not ready',
+                    '장비 준비 안 됨',
                     style: TextStyle(color: Colors.orangeAccent, fontSize: 12),
                   ),
                 if (status != null)
                   Text(
-                    'Cameras: ${status.cameras.values.where((camera) => camera.open).length}/${status.cameras.length} open',
+                    '카메라 연결: ${status.cameras.values.where((camera) => camera.open).length}/${status.cameras.length}',
                     style: const TextStyle(color: Colors.white60, fontSize: 12),
                   ),
               ],
@@ -1885,7 +1881,7 @@ class _ViewerScreenState extends State<ViewerScreen>
                       initialValue: selectedCycleId,
                       isExpanded: true,
                       decoration: const InputDecoration(
-                        labelText: 'Correlated cycle result',
+                        labelText: '촬영별 검사 결과',
                         isDense: true,
                         border: OutlineInputBorder(),
                       ),
@@ -1907,18 +1903,18 @@ class _ViewerScreenState extends State<ViewerScreen>
                   if (selectedResult != null) ...[
                     const SizedBox(width: 10),
                     _stationResultChip(
-                      selectedResult.presentationStatus,
+                      statusLabel(selectedResult.presentationStatus),
                       _stationStatusColor(selectedResult.presentationStatus),
                     ),
                     if (selectedResult.group.isNotEmpty) ...[
                       const SizedBox(width: 8),
-                      Text('Group ${selectedResult.group}'),
+                      Text('검사 그룹 ${selectedResult.group}'),
                     ],
                     for (final inspection
                         in selectedResult.inspections.values) ...[
                       const SizedBox(width: 8),
                       _stationResultChip(
-                        '${inspection.inspectionId}: ${inspection.status}'
+                        '${inspection.inspectionId}: ${statusLabel(inspection.status)}'
                         '${inspection.reason.isEmpty ? '' : ' (${inspection.reason})'}',
                         _stationStatusColor(inspection.status),
                       ),
@@ -1926,7 +1922,7 @@ class _ViewerScreenState extends State<ViewerScreen>
                     const SizedBox(width: 8),
                     OutlinedButton.icon(
                       icon: const Icon(Icons.data_object, size: 16),
-                      label: const Text('Details'),
+                      label: const Text('상세 보기'),
                       onPressed: () =>
                           _showStationResultDetails(selectedResult),
                     ),
@@ -1982,9 +1978,9 @@ class _ViewerScreenState extends State<ViewerScreen>
       existing = await credentials.readToken(settings);
     } catch (error) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Credential storage is unavailable: $error')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('인증 정보 저장소를 사용할 수 없어: $error')));
       }
       return;
     }
@@ -1996,7 +1992,7 @@ class _ViewerScreenState extends State<ViewerScreen>
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          title: const Text('Management credentials'),
+          title: const Text('관리 인증 설정'),
           content: SizedBox(
             width: 480,
             child: Column(
@@ -2005,8 +2001,8 @@ class _ViewerScreenState extends State<ViewerScreen>
               children: [
                 Text(
                   existing == null
-                      ? 'No token is stored for this API server.'
-                      : 'A token is stored for this API server.',
+                      ? '이 API 서버의 토큰이 저장되어 있지 않아.'
+                      : '이 API 서버의 토큰이 저장되어 있어.',
                 ),
                 const SizedBox(height: 12),
                 TextField(
@@ -2017,13 +2013,13 @@ class _ViewerScreenState extends State<ViewerScreen>
                   onChanged: (value) =>
                       setDialogState(() => enteredToken = value.trim()),
                   decoration: InputDecoration(
-                    labelText: 'Bearer token',
+                    labelText: '관리 토큰',
                     hintText: existing == null
-                        ? 'Paste the device management token'
-                        : 'Leave blank to keep the stored token',
+                        ? '장비 관리 토큰을 붙여 넣어'
+                        : '비워 두면 기존 토큰을 유지해',
                     border: const OutlineInputBorder(),
                     suffixIcon: IconButton(
-                      tooltip: hidden ? 'Show token' : 'Hide token',
+                      tooltip: hidden ? '토큰 표시' : '토큰 숨기기',
                       onPressed: () => setDialogState(() => hidden = !hidden),
                       icon: Icon(
                         hidden
@@ -2035,7 +2031,7 @@ class _ViewerScreenState extends State<ViewerScreen>
                 ),
                 const SizedBox(height: 10),
                 const Text(
-                  'Stored in the operating system credential store. Use a protected tunnel or TLS proxy for remote management.',
+                  '운영체제 인증 정보 저장소에 보관해. 원격 관리에는 보안 터널이나 TLS 프록시를 사용해.',
                   style: TextStyle(fontSize: 12),
                 ),
               ],
@@ -2045,17 +2041,17 @@ class _ViewerScreenState extends State<ViewerScreen>
             if (existing != null)
               TextButton(
                 onPressed: () => Navigator.pop(dialogContext, 'clear'),
-                child: const Text('Remove token'),
+                child: const Text('토큰 삭제'),
               ),
             TextButton(
               onPressed: () => Navigator.pop(dialogContext),
-              child: const Text('Cancel'),
+              child: const Text('취소'),
             ),
             FilledButton(
               onPressed: existing != null || isValidReferenceToken(enteredToken)
                   ? () => Navigator.pop(dialogContext, 'save')
                   : null,
-              child: const Text('Save'),
+              child: const Text('저장'),
             ),
           ],
         ),
@@ -2072,19 +2068,19 @@ class _ViewerScreenState extends State<ViewerScreen>
           SnackBar(
             content: Text(
               action == 'clear'
-                  ? 'Management token removed.'
+                  ? '관리 토큰 삭제 완료.'
                   : controller.text.trim().isEmpty
-                  ? 'Stored management token kept.'
-                  : 'Management token saved.',
+                  ? '기존 관리 토큰을 유지했어.'
+                  : '관리 토큰 저장 완료.',
             ),
           ),
         );
       }
     } catch (error) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Could not update credentials: $error')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('인증 정보 변경 실패: $error')));
       }
     } finally {
       controller.dispose();
@@ -2102,20 +2098,20 @@ class _ViewerScreenState extends State<ViewerScreen>
     showDialog<void>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: Text('Cycle ${_shortCycleId(result.cycleId)}'),
+        title: Text('검사 ${_shortCycleId(result.cycleId)}'),
         content: SizedBox(
           width: 720,
           child: SingleChildScrollView(
             child: SelectableText(
               const JsonEncoder.withIndent('  ').convert(details),
-              style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
+              style: const TextStyle(fontFamily: 'NotoSansKR', fontSize: 12),
             ),
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Close'),
+            child: const Text('닫기'),
           ),
         ],
       ),
@@ -2134,7 +2130,7 @@ class _ViewerScreenState extends State<ViewerScreen>
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Connect'),
+        title: const Text('연결'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -2142,29 +2138,29 @@ class _ViewerScreenState extends State<ViewerScreen>
               controller: streamController,
               autofocus: true,
               decoration: const InputDecoration(
-                labelText: 'Stream URL',
+                labelText: '영상 URL',
                 hintText:
                     'rtsp://192.168.0.10:8554/live  또는  ws://192.168.0.10:8080/',
                 border: OutlineInputBorder(),
               ),
-              style: const TextStyle(fontFamily: 'monospace', fontSize: 13),
+              style: const TextStyle(fontFamily: 'NotoSansKR', fontSize: 13),
             ),
             const SizedBox(height: 16),
             TextField(
               controller: apiController,
               decoration: const InputDecoration(
-                labelText: 'API Base URL',
+                labelText: 'API 기본 URL',
                 hintText: 'http://192.168.0.10:8090',
                 border: OutlineInputBorder(),
               ),
-              style: const TextStyle(fontFamily: 'monospace', fontSize: 13),
+              style: const TextStyle(fontFamily: 'NotoSansKR', fontSize: 13),
             ),
           ],
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
+            child: const Text('취소'),
           ),
           FilledButton(
             onPressed: () async {
@@ -2177,7 +2173,7 @@ class _ViewerScreenState extends State<ViewerScreen>
                 apiBaseUrl: apiController.text.trim(),
               );
             },
-            child: const Text('Connect'),
+            child: const Text('연결'),
           ),
         ],
       ),
@@ -2208,14 +2204,14 @@ class _ViewerScreenState extends State<ViewerScreen>
         try {
           nextStatus = await _captureApi.fetchStationStatus(settings);
         } catch (error) {
-          errors.add('Status: $error');
+          errors.add('상태 조회: $error');
         }
       }(),
       () async {
         try {
           nextSource = await _captureApi.fetchViewerSource(settings);
         } catch (error) {
-          errors.add('Preview source: $error');
+          errors.add('미리보기 영상: $error');
         }
       }(),
     ]);
@@ -2281,7 +2277,7 @@ class _ViewerScreenState extends State<ViewerScreen>
       try {
         nextStatus = await _captureApi.fetchStationStatus(settings);
       } catch (error) {
-        nextError = 'Station status failed: $error';
+        nextError = '장비 상태 조회 실패: $error';
       }
 
       final pendingCycles = _stationCycles.values
@@ -2299,10 +2295,10 @@ class _ViewerScreenState extends State<ViewerScreen>
               pending.cycleId,
             );
           } else {
-            nextError ??= 'Result polling failed: $error';
+            nextError ??= '검사 결과 조회 실패: $error';
           }
         } catch (error) {
-          nextError ??= 'Result polling failed: $error';
+          nextError ??= '검사 결과 조회 실패: $error';
         }
       }
     } finally {
@@ -2448,7 +2444,7 @@ class _ViewerScreenState extends State<ViewerScreen>
         _stationViewerLayout = actualLayout;
         _stationCameraSlots = actualSlots;
         _stationSourceActionInFlight = false;
-        _stationError = 'Multi-stream selection failed: $error';
+        _stationError = '카메라 선택 실패: $error';
       });
       _persistStationViewerLayout(actualLayout, actualSlots);
     }
@@ -2474,9 +2470,7 @@ class _ViewerScreenState extends State<ViewerScreen>
     if (status == null ||
         !status.ready ||
         !status.captureTargets.contains(target)) {
-      throw StateError(
-        'Capture target is not available for the current station',
-      );
+      throw StateError('현재 장비에서 사용할 수 없는 촬영 대상이야');
     }
 
     final accepted = await _captureApi.requestStationCapture(
@@ -2485,7 +2479,7 @@ class _ViewerScreenState extends State<ViewerScreen>
     );
     if (!accepted.accepted || accepted.cycleId.isEmpty) {
       throw StateError(
-        accepted.error.isEmpty ? 'Station rejected capture' : accepted.error,
+        accepted.error.isEmpty ? '장비가 촬영 요청을 거부했어' : accepted.error,
       );
     }
     if (!mounted) return;
@@ -2560,7 +2554,7 @@ class _ViewerScreenState extends State<ViewerScreen>
       if (context.mounted) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(SnackBar(content: Text('Device info load failed: $e')));
+        ).showSnackBar(SnackBar(content: Text('장비 정보 조회 실패: $e')));
       }
     }
   }
@@ -2592,7 +2586,7 @@ class _ViewerScreenState extends State<ViewerScreen>
       setState(() => _recordingActionInFlight = false);
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('Recording API failed: $e')));
+      ).showSnackBar(SnackBar(content: Text('녹화 API 오류: $e')));
     }
   }
 
@@ -2605,7 +2599,7 @@ class _ViewerScreenState extends State<ViewerScreen>
     try {
       if (_isInspectionStation) {
         if (stationTarget == null) {
-          throw StateError('Station capture target is required');
+          throw StateError('장비 촬영 대상을 지정해야 해');
         }
         await _requestStationCapture(settings, stationTarget);
       } else {
@@ -2615,21 +2609,17 @@ class _ViewerScreenState extends State<ViewerScreen>
       setState(() => _captureActionInFlight = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            _isInspectionStation
-                ? 'Station capture accepted'
-                : 'Capture requested',
-          ),
+          content: Text(_isInspectionStation ? '장비가 촬영 요청을 접수했어' : '촬영 요청 완료'),
         ),
       );
     } catch (e) {
       if (!mounted) return;
       setState(() => _captureActionInFlight = false);
       final message = e is RemoteCaptureApiException && e.statusCode == 409
-          ? 'Capture queue is full (409)'
+          ? '촬영 대기열이 가득 찼어 (409)'
           : e is RemoteCaptureApiException && e.statusCode == 503
-          ? 'Station is not ready (503)'
-          : 'Capture API failed: $e';
+          ? '장비가 준비되지 않았어 (503)'
+          : '촬영 API 오류: $e';
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(message)));
@@ -2671,7 +2661,7 @@ class _RoiAlertOffOverlay extends StatelessWidget {
                 ),
                 SizedBox(width: 10),
                 Text(
-                  'ROI Alert Off',
+                  'ROI 경고 꺼짐',
                   style: TextStyle(
                     color: Colors.amberAccent,
                     fontSize: 22,
@@ -2835,7 +2825,7 @@ class _DepthLegendPainter extends CustomPainter {
         style: const TextStyle(
           color: Colors.white70,
           fontSize: 10,
-          fontFamily: 'monospace',
+          fontFamily: 'NotoSansKR',
           shadows: [Shadow(color: Colors.black, blurRadius: 3)],
         ),
       ),
@@ -3057,7 +3047,7 @@ class _StatusChip extends StatelessWidget {
               fontSize: 11,
               fontWeight: FontWeight.bold,
               color: color,
-              fontFamily: 'monospace',
+              fontFamily: 'NotoSansKR',
             ),
           ),
         ),

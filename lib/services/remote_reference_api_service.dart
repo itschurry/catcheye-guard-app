@@ -23,7 +23,7 @@ class RemoteReferenceApiException implements Exception {
 
   @override
   String toString() =>
-      'RemoteReferenceApiException: $method $uri failed '
+      '기준 이미지 API 오류: $method $uri '
       '($statusCode${code.isEmpty ? '' : ', $code'}): $message';
 }
 
@@ -73,36 +73,34 @@ class ReferenceApiStatus {
   factory ReferenceApiStatus.fromJson(Map<String, dynamic> json) {
     final rawCapabilities = json['capabilities'];
     if (rawCapabilities is! Map) {
-      throw const FormatException('capabilities object expected');
+      throw const FormatException('capabilities 객체가 필요해');
     }
     final rawCameraClasses = json['camera_classes'];
     if (rawCameraClasses is! Map) {
-      throw const FormatException('camera_classes object expected');
+      throw const FormatException('camera_classes 객체가 필요해');
     }
     final cameraClasses = <String, List<String>>{};
     for (final entry in rawCameraClasses.entries) {
       if (entry.key is! String ||
           entry.value is! List ||
           (entry.value as List).any((value) => value is! String)) {
-        throw const FormatException('invalid camera_classes entry');
+        throw const FormatException('camera_classes 항목이 올바르지 않아');
       }
       final classes = (entry.value as List).cast<String>();
       if (classes.isEmpty ||
           classes.any((value) => value.isEmpty) ||
           classes.length != classes.toSet().length) {
-        throw const FormatException(
-          'camera classes must be unique and nonempty',
-        );
+        throw const FormatException('카메라 분류는 중복되거나 비어 있으면 안 돼');
       }
       cameraClasses[entry.key as String] = List.unmodifiable(classes);
     }
     final apiVersion = _requiredInt(json, 'api_version');
     if (apiVersion != 1) {
-      throw FormatException('unsupported reference API version: $apiVersion');
+      throw FormatException('지원하지 않는 기준 이미지 API 버전: $apiVersion');
     }
     final deviceState = _requiredString(json, 'device_state');
     if (!const {'RUNNING', 'MAINTENANCE', 'ERROR'}.contains(deviceState)) {
-      throw FormatException('unsupported device state: $deviceState');
+      throw FormatException('지원하지 않는 장비 상태: $deviceState');
     }
     return ReferenceApiStatus(
       apiVersion: apiVersion,
@@ -131,7 +129,7 @@ enum ReferenceCaptureState {
     'READY' => ready,
     'FAILED' => failed,
     'INTERRUPTED' => interrupted,
-    _ => throw FormatException('unsupported reference capture state: $value'),
+    _ => throw FormatException('지원하지 않는 기준 촬영 상태: $value'),
   };
 }
 
@@ -162,11 +160,11 @@ class ReferenceImageInfo {
     final width = _requiredInt(json, 'width');
     final height = _requiredInt(json, 'height');
     if (width <= 0 || height <= 0) {
-      throw const FormatException('image dimensions must be positive');
+      throw const FormatException('이미지 가로·세로 크기는 양수여야 해');
     }
     final url = _requiredString(json, 'url');
     if (!url.startsWith('/') || url.startsWith('//')) {
-      throw const FormatException('reference image URL must be relative');
+      throw const FormatException('기준 이미지 URL은 상대 경로여야 해');
     }
     return ReferenceImageInfo(
       imageId: _requiredString(json, 'image_id'),
@@ -199,13 +197,13 @@ class ReferenceCapture {
     final state = ReferenceCaptureState.parse(_requiredString(json, 'state'));
     final rawImage = json['image'];
     if (rawImage != null && rawImage is! Map) {
-      throw const FormatException('image object expected');
+      throw const FormatException('image 객체가 필요해');
     }
     final image = rawImage == null
         ? null
         : ReferenceImageInfo.fromJson(Map<String, dynamic>.from(rawImage));
     if (state == ReferenceCaptureState.ready && image == null) {
-      throw const FormatException('READY capture must include image');
+      throw const FormatException('촬영 완료 응답에 이미지가 없어');
     }
     return ReferenceCapture(
       captureId: _requiredString(json, 'capture_id'),
@@ -240,7 +238,7 @@ class ReferenceBox {
 
   factory ReferenceBox.fromJson(dynamic json) {
     if (json is! List || json.length != 4 || json.any((v) => v is! num)) {
-      throw const FormatException('box must contain four numbers');
+      throw const FormatException('박스 좌표에는 숫자 4개가 필요해');
     }
     return ReferenceBox(
       (json[0] as num).toDouble(),
@@ -272,7 +270,7 @@ class ReferenceRevisionEntry {
 
   factory ReferenceRevisionEntry.fromJson(Map<String, dynamic> json) {
     final rawBoxes = json['boxes'];
-    if (rawBoxes is! List) throw const FormatException('boxes list expected');
+    if (rawBoxes is! List) throw const FormatException('boxes 목록이 필요해');
     return ReferenceRevisionEntry(
       className: _requiredString(json, 'class_name'),
       imageId: _requiredString(json, 'image_id'),
@@ -321,7 +319,7 @@ class ReferenceRevision {
   factory ReferenceRevision.fromJson(Map<String, dynamic> json) {
     final rawEntries = json['entries'];
     if (rawEntries is! List) {
-      throw const FormatException('entries list expected');
+      throw const FormatException('entries 목록이 필요해');
     }
     return ReferenceRevision(
       revisionId: _requiredString(json, 'revision_id'),
@@ -350,7 +348,7 @@ class ReferenceRevisionList {
   factory ReferenceRevisionList.fromJson(Map<String, dynamic> json) {
     final rawRevisions = json['revisions'];
     if (rawRevisions is! List) {
-      throw const FormatException('revisions list expected');
+      throw const FormatException('revisions 목록이 필요해');
     }
     return ReferenceRevisionList(
       revisions: List.unmodifiable(
@@ -387,7 +385,7 @@ enum ModelBuildState {
     'SUCCEEDED' => succeeded,
     'FAILED' => failed,
     'INTERRUPTED' => interrupted,
-    _ => throw FormatException('unsupported model build state: $value'),
+    _ => throw FormatException('지원하지 않는 모델 빌드 상태: $value'),
   };
 }
 
@@ -415,9 +413,7 @@ class ModelValidationDetection {
         !confidence.isFinite ||
         confidence < 0 ||
         confidence > 1) {
-      throw const FormatException(
-        'invalid validation detection geometry or confidence',
-      );
+      throw const FormatException('검증 결과의 검출 좌표 또는 신뢰도가 올바르지 않아');
     }
     return ModelValidationDetection(
       className: _requiredString(json, 'class_name'),
@@ -451,10 +447,10 @@ class ModelValidationResult {
     final rawDetections = json['detections'];
     final rawMeasurements = json['measurements'];
     if (rawDetections != null && rawDetections is! List) {
-      throw const FormatException('validation detections list expected');
+      throw const FormatException('검증 결과에 detections 목록이 필요해');
     }
     if (rawMeasurements != null && rawMeasurements is! Map) {
-      throw const FormatException('validation measurements object expected');
+      throw const FormatException('검증 결과에 measurements 객체가 필요해');
     }
     return ModelValidationResult(
       source: _requiredString(json, 'source'),
@@ -467,9 +463,7 @@ class ModelValidationResult {
           : List.unmodifiable(
               (rawDetections as List).map((value) {
                 if (value is! Map) {
-                  throw const FormatException(
-                    'validation detection object expected',
-                  );
+                  throw const FormatException('검증 결과에 검출 객체가 필요해');
                 }
                 return ModelValidationDetection.fromJson(
                   Map<String, dynamic>.from(value),
@@ -499,7 +493,7 @@ class ModelValidation {
   factory ModelValidation.fromJson(Map<String, dynamic> json) {
     final rawResults = json['results'];
     if (rawResults is! List) {
-      throw const FormatException('validation results list expected');
+      throw const FormatException('검증 결과 목록이 필요해');
     }
     return ModelValidation(
       technicalPassed: _requiredBool(json, 'technical_passed'),
@@ -537,7 +531,7 @@ class ModelBuild {
   factory ModelBuild.fromJson(Map<String, dynamic> json) {
     final rawValidation = json['validation'];
     if (rawValidation != null && rawValidation is! Map) {
-      throw const FormatException('validation object expected');
+      throw const FormatException('validation 객체가 필요해');
     }
     return ModelBuild(
       buildId: _requiredString(json, 'build_id'),
@@ -585,7 +579,7 @@ class ReferenceModel {
   factory ReferenceModel.fromJson(Map<String, dynamic> json) {
     final rawValidation = json['validation'];
     if (rawValidation != null && rawValidation is! Map) {
-      throw const FormatException('validation object expected');
+      throw const FormatException('validation 객체가 필요해');
     }
     return ReferenceModel(
       modelId: _requiredString(json, 'model_id'),
@@ -614,7 +608,7 @@ class ReferenceModelList {
 
   factory ReferenceModelList.fromJson(Map<String, dynamic> json) {
     final rawModels = json['models'];
-    if (rawModels is! List) throw const FormatException('models list expected');
+    if (rawModels is! List) throw const FormatException('models 목록이 필요해');
     return ReferenceModelList(
       models: List.unmodifiable(
         rawModels.map(
@@ -650,7 +644,7 @@ enum ModelActivationState {
     'ROLLED_BACK' => rolledBack,
     'FAILED' => failed,
     'INTERRUPTED' => interrupted,
-    _ => throw FormatException('unsupported model activation state: $value'),
+    _ => throw FormatException('지원하지 않는 모델 적용 상태: $value'),
   };
 }
 
@@ -719,7 +713,7 @@ class RemoteReferenceApiService {
   }) async {
     final normalizedCameraId = cameraId.trim();
     if (normalizedCameraId.isEmpty) {
-      throw const FormatException('camera_id must not be empty');
+      throw const FormatException('camera_id가 비어 있으면 안 돼');
     }
     final json = await _requestJson(
       'POST',
@@ -773,17 +767,17 @@ class RemoteReferenceApiService {
         throw _apiException('GET', uri, response.statusCode, responseBody);
       }
       if (response.headers.contentType?.mimeType != 'image/png') {
-        throw const FormatException('reference image response must be PNG');
+        throw const FormatException('기준 이미지 응답은 PNG여야 해');
       }
       final declaredLength = response.contentLength;
       if (declaredLength > _maxImageBytes) {
-        throw const FormatException('reference image exceeds 16 MiB');
+        throw const FormatException('기준 이미지가 16 MiB를 초과했어');
       }
       final bytes = BytesBuilder(copy: false);
       await for (final chunk in response.timeout(_requestTimeout)) {
         if (bytes.length + chunk.length > _maxImageBytes) {
           request.abort();
-          throw const FormatException('reference image exceeds 16 MiB');
+          throw const FormatException('기준 이미지가 16 MiB를 초과했어');
         }
         bytes.add(chunk);
       }
@@ -804,7 +798,7 @@ class RemoteReferenceApiService {
     String? cursor,
   }) async {
     if (limit < 1 || limit > 100) {
-      throw const FormatException('limit must be between 1 and 100');
+      throw const FormatException('조회 개수는 1~100이어야 해');
     }
     final base = settings.buildApiUri('reference/revisions');
     final uri = base.replace(
@@ -843,7 +837,7 @@ class RemoteReferenceApiService {
     final normalizedClass = _requireId(className, 'class_name');
     final normalizedImageId = _requireId(imageId, 'image_id');
     if (boxes.isEmpty || boxes.length > 64) {
-      throw const FormatException('between 1 and 64 boxes are required');
+      throw const FormatException('박스는 1~64개가 필요해');
     }
     final json = await _requestJson(
       'POST',
@@ -905,7 +899,7 @@ class RemoteReferenceApiService {
     String? cursor,
   }) async {
     if (limit < 1 || limit > 100) {
-      throw const FormatException('limit must be between 1 and 100');
+      throw const FormatException('조회 개수는 1~100이어야 해');
     }
     final uri = settings
         .buildApiUri('models')
@@ -975,7 +969,7 @@ class RemoteReferenceApiService {
       } else {
         final encoded = utf8.encode(jsonEncode(body));
         if (encoded.length > 64 * 1024) {
-          throw const FormatException('reference request exceeds 64 KiB');
+          throw const FormatException('기준 이미지 요청이 64 KiB를 초과했어');
         }
         request.headers.contentType = ContentType.json;
         request.headers.contentLength = encoded.length;
@@ -994,7 +988,7 @@ class RemoteReferenceApiService {
       if (responseBody.isEmpty) return const <String, dynamic>{};
       final decoded = jsonDecode(responseBody);
       if (decoded is! Map<String, dynamic>) {
-        throw const FormatException('JSON object response expected');
+        throw const FormatException('JSON 객체 응답이 필요해');
       }
       return decoded;
     } on TimeoutException {
@@ -1035,7 +1029,7 @@ class RemoteReferenceApiService {
 
   static void _setAuthorization(HttpClientRequest request, String bearerToken) {
     if (!RegExp(r'^[A-Za-z0-9_-]{32,256}$').hasMatch(bearerToken)) {
-      throw const FormatException('invalid management credential');
+      throw const FormatException('관리 인증 정보가 올바르지 않아');
     }
     request.headers.set(HttpHeaders.authorizationHeader, 'Bearer $bearerToken');
   }
@@ -1059,7 +1053,7 @@ Uri _relativeApiUri(AppSettings settings, String relativeUrl) {
   if (relative.hasScheme ||
       relative.hasAuthority ||
       !relativeUrl.startsWith('/')) {
-    throw const FormatException('server resource URL must be relative');
+    throw const FormatException('서버 리소스 URL은 상대 경로여야 해');
   }
   final base = Uri.parse(
     settings.detectorBaseUrl.contains('://')
@@ -1071,14 +1065,14 @@ Uri _relativeApiUri(AppSettings settings, String relativeUrl) {
 
 String _requireId(String value, String field) {
   final normalized = value.trim();
-  if (normalized.isEmpty) throw FormatException('$field must not be empty');
+  if (normalized.isEmpty) throw FormatException('$field 항목이 비어 있으면 안 돼');
   return normalized;
 }
 
 String _requiredString(Map<String, dynamic> json, String key) {
   final value = json[key];
   if (value is! String || value.isEmpty) {
-    throw FormatException('$key nonempty string expected');
+    throw FormatException('$key 항목에 비어 있지 않은 문자열이 필요해');
   }
   return value;
 }
@@ -1086,27 +1080,27 @@ String _requiredString(Map<String, dynamic> json, String key) {
 String _optionalString(Map<String, dynamic> json, String key) {
   final value = json[key];
   if (value == null) return '';
-  if (value is! String) throw FormatException('$key string expected');
+  if (value is! String) throw FormatException('$key 항목에 문자열이 필요해');
   return value;
 }
 
 String? _nullableString(Map<String, dynamic> json, String key) {
   final value = json[key];
   if (value == null) return null;
-  if (value is! String) throw FormatException('$key string expected');
+  if (value is! String) throw FormatException('$key 항목에 문자열이 필요해');
   return value.isEmpty ? null : value;
 }
 
 bool _requiredBool(Map<String, dynamic> json, String key) {
   final value = json[key];
-  if (value is! bool) throw FormatException('$key bool expected');
+  if (value is! bool) throw FormatException('$key 항목에 불리언 값이 필요해');
   return value;
 }
 
 int _requiredInt(Map<String, dynamic> json, String key) {
   final value = json[key];
   if (value is! num || !value.isFinite || value != value.roundToDouble()) {
-    throw FormatException('$key integer expected');
+    throw FormatException('$key 항목에 정수가 필요해');
   }
   return value.toInt();
 }
@@ -1120,7 +1114,7 @@ num? _optionalNumber(Map<String, dynamic> json, String key) {
   final value = json[key];
   if (value == null) return null;
   if (value is! num || !value.isFinite) {
-    throw FormatException('$key finite number expected');
+    throw FormatException('$key 항목에 유한한 숫자가 필요해');
   }
   return value;
 }
@@ -1131,5 +1125,5 @@ String _errorMessage(dynamic error) {
   if (error is Map && error['message'] is String) {
     return error['message'] as String;
   }
-  throw const FormatException('invalid capture error');
+  throw const FormatException('촬영 오류 응답이 올바르지 않아');
 }

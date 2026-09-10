@@ -58,7 +58,7 @@ class SplitStreamPanel extends StatelessWidget {
                   ),
                   Text(
                     stream.isPointCloud
-                        ? '${stream.pointCount} pts'
+                        ? '${stream.pointCount}개 점'
                         : size == null
                         ? '-'
                         : '${size.width.toInt()} x ${size.height.toInt()}',
@@ -109,7 +109,7 @@ class MissingSplitPanel extends StatelessWidget {
           const Expanded(
             child: Center(
               child: Text(
-                'No stream',
+                '영상 없음',
                 style: TextStyle(fontSize: 12, color: Colors.grey),
               ),
             ),
@@ -219,7 +219,7 @@ class StreamSelector extends StatelessWidget {
               ),
               const SizedBox(width: 8),
               const Text(
-                'Streams',
+                '영상 목록',
                 style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
               ),
             ],
@@ -240,7 +240,7 @@ class StreamSelector extends StatelessWidget {
                   const SizedBox(height: 14),
                 ],
                 _StreamGroupCard(
-                  title: 'RGB Camera',
+                  title: 'RGB 카메라',
                   icon: Icons.videocam_outlined,
                   streams: rgbCameraStreams,
                   selectedStreamKey: receiver.selectedStreamKey,
@@ -249,7 +249,7 @@ class StreamSelector extends StatelessWidget {
                 if (depthStreams.isNotEmpty) ...[
                   const SizedBox(height: 14),
                   _StreamGroupCard(
-                    title: 'Depth / 3D',
+                    title: '깊이 / 3D',
                     icon: Icons.sensors,
                     streams: depthStreams,
                     selectedStreamKey: receiver.selectedStreamKey,
@@ -259,7 +259,7 @@ class StreamSelector extends StatelessWidget {
                 if (otherStreams.isNotEmpty) ...[
                   const SizedBox(height: 14),
                   _StreamGroupCard(
-                    title: 'Other Streams',
+                    title: '기타 영상',
                     icon: Icons.account_tree_outlined,
                     streams: otherStreams,
                     selectedStreamKey: receiver.selectedStreamKey,
@@ -367,8 +367,8 @@ class _SplitViewControls extends StatelessWidget {
               const Expanded(
                 child: _PanelHeader(
                   icon: Icons.splitscreen_outlined,
-                  title: 'Split View',
-                  subtitle: 'Choose panel streams',
+                  title: '분할 화면',
+                  subtitle: '화면별 영상 선택',
                 ),
               ),
               Switch(value: splitView, onChanged: onSplitViewChanged),
@@ -376,7 +376,7 @@ class _SplitViewControls extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           _SplitStreamPicker(
-            label: 'Left',
+            label: '왼쪽',
             streams: streams,
             value: leftKey,
             onChanged: splitView
@@ -387,7 +387,7 @@ class _SplitViewControls extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           _SplitStreamPicker(
-            label: 'Right',
+            label: '오른쪽',
             streams: streams,
             value: rightKey,
             onChanged: splitView
@@ -464,7 +464,7 @@ class _StreamGroupCard extends StatelessWidget {
           const SizedBox(height: 10),
           if (streams.isEmpty)
             const Text(
-              'No stream',
+              '영상 없음',
               style: TextStyle(fontSize: 12, color: Colors.grey),
             ),
           for (var i = 0; i < streams.length; i++) ...[
@@ -497,7 +497,7 @@ class _StreamSlot extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
     final size = stream.size;
     final detail = stream.isPointCloud
-        ? '${stream.pointCount} pts'
+        ? '${stream.pointCount}개 점'
         : size == null
         ? '-'
         : '${size.width.toInt()} x ${size.height.toInt()}';
@@ -669,8 +669,8 @@ class _PointCloudOptions extends StatelessWidget {
       children: [
         const _PanelHeader(
           icon: Icons.visibility_outlined,
-          title: 'Viewer Properties',
-          subtitle: 'Local display controls',
+          title: '영상 표시 설정',
+          subtitle: '앱 화면 표시 설정',
         ),
         const SizedBox(height: 8),
         Row(
@@ -681,7 +681,7 @@ class _PointCloudOptions extends StatelessWidget {
                 child: FittedBox(
                   fit: BoxFit.scaleDown,
                   child: Text(
-                    viewportLocked ? 'Unlock' : 'Lock View',
+                    viewportLocked ? '고정 해제' : '화면 고정',
                     maxLines: 1,
                     softWrap: false,
                   ),
@@ -690,19 +690,19 @@ class _PointCloudOptions extends StatelessWidget {
             ),
             const SizedBox(width: 8),
             IconButton(
-              tooltip: 'Reset View',
+              tooltip: '화면 초기화',
               onPressed: onResetView,
               icon: const Icon(Icons.center_focus_strong, size: 18),
             ),
             IconButton(
-              tooltip: 'Reset Camera',
+              tooltip: '카메라 시점 초기화',
               onPressed: onResetCamera,
               icon: const Icon(Icons.threed_rotation, size: 18),
             ),
           ],
         ),
         const SizedBox(height: 8),
-        const Text('Color palette', style: TextStyle(fontSize: 12)),
+        const Text('색상 팔레트', style: TextStyle(fontSize: 12)),
         const SizedBox(height: 6),
         SegmentedButton<PointCloudPalette>(
           showSelectedIcon: false,
@@ -713,7 +713,7 @@ class _PointCloudOptions extends StatelessWidget {
           segments: const [
             ButtonSegment(
               value: PointCloudPalette.depth,
-              label: Text('Depth', maxLines: 1, softWrap: false),
+              label: Text('깊이', maxLines: 1, softWrap: false),
             ),
             ButtonSegment(
               value: PointCloudPalette.x,
@@ -725,7 +725,7 @@ class _PointCloudOptions extends StatelessWidget {
             ),
             ButtonSegment(
               value: PointCloudPalette.grayscale,
-              label: Text('Gray', maxLines: 1, softWrap: false),
+              label: Text('흑백', maxLines: 1, softWrap: false),
             ),
           ],
           selected: {palette},
@@ -733,8 +733,7 @@ class _PointCloudOptions extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         _OptionLabel(
-          value:
-              'Yaw ${(yaw * 180 / 3.141592653589793).toStringAsFixed(0)} deg',
+          value: '좌우 회전 ${(yaw * 180 / 3.141592653589793).toStringAsFixed(0)}°',
         ),
         Slider(
           value: yawSliderValue,
@@ -744,7 +743,7 @@ class _PointCloudOptions extends StatelessWidget {
         ),
         _OptionLabel(
           value:
-              'Pitch ${(pitch * 180 / 3.141592653589793).toStringAsFixed(0)} deg',
+              '상하 회전 ${(pitch * 180 / 3.141592653589793).toStringAsFixed(0)}°',
         ),
         Slider(
           value: pitchSliderValue,
@@ -753,9 +752,9 @@ class _PointCloudOptions extends StatelessWidget {
           onChanged: (value) =>
               onPitchChanged(_unwrapSliderAngle(pitch, value)),
         ),
-        _OptionLabel(value: 'Zoom ${zoom.toStringAsFixed(1)}x'),
+        _OptionLabel(value: '확대 ${zoom.toStringAsFixed(1)}배'),
         Slider(value: zoom, min: 0.2, max: 8.0, onChanged: onZoomChanged),
-        _OptionLabel(value: 'Point size ${pointSize.toStringAsFixed(1)}'),
+        _OptionLabel(value: '점 크기 ${pointSize.toStringAsFixed(1)}'),
         Slider(
           value: pointSize,
           min: 0.5,
@@ -765,11 +764,11 @@ class _PointCloudOptions extends StatelessWidget {
         SwitchListTile(
           dense: true,
           contentPadding: EdgeInsets.zero,
-          title: const Text('Axis', style: TextStyle(fontSize: 12)),
+          title: const Text('좌표축', style: TextStyle(fontSize: 12)),
           value: showAxis,
           onChanged: onShowAxisChanged,
         ),
-        _OptionLabel(value: 'Axis scale ${axisScale.toStringAsFixed(1)} m'),
+        _OptionLabel(value: '좌표축 크기 ${axisScale.toStringAsFixed(1)} m'),
         Slider(
           value: axisScale.clamp(0.0, 3.0).toDouble(),
           min: 0,
@@ -778,7 +777,7 @@ class _PointCloudOptions extends StatelessWidget {
         ),
         _OptionLabel(
           value:
-              'Visible depth filter ${safeDepthMin.toStringAsFixed(1)} - ${safeDepthMax.toStringAsFixed(1)}',
+              '표시 깊이 범위 ${safeDepthMin.toStringAsFixed(1)} - ${safeDepthMax.toStringAsFixed(1)}',
         ),
         RangeSlider(
           values: RangeValues(safeDepthMin, safeDepthMax),

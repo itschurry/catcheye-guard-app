@@ -44,7 +44,7 @@ class PointCloudData {
     final expectedBytes = pointCount * bytesPerPoint;
     if (pointCount <= 0 || bytes.length != expectedBytes) {
       throw FormatException(
-        'Invalid pointcloud payload size: expected $expectedBytes, got ${bytes.length}',
+        '포인트클라우드 데이터 크기 오류: 예상 $expectedBytes, 수신 ${bytes.length}',
       );
     }
 
@@ -103,7 +103,7 @@ class ProjectedDepthData {
     final expectedBytes = pointCount * bytesPerPoint;
     if (pointCount <= 0 || bytes.length != expectedBytes) {
       throw FormatException(
-        'Invalid projected depth payload size: expected $expectedBytes, got ${bytes.length}',
+        '투영 깊이 데이터 크기 오류: 예상 $expectedBytes, 수신 ${bytes.length}',
       );
     }
 
@@ -515,7 +515,7 @@ class FrameReceiverService extends ChangeNotifier {
       _connecting = false;
       _connected = false;
       _transport = null;
-      _errorMessage = 'Connection failed: $e';
+      _errorMessage = '연결 실패: $e';
       _notifyListeners();
     }
   }
@@ -586,7 +586,7 @@ class FrameReceiverService extends ChangeNotifier {
     _webSocketSubscription = _webSocket!.listen(
       _onWebSocketData,
       onError: (Object error, StackTrace stackTrace) {
-        _handleSocketClosed('Connection error: $error');
+        _handleSocketClosed('연결 오류: $error');
       },
       onDone: () {
         if (_closingWebSocket || (!_connected && !_connecting)) {
@@ -600,9 +600,7 @@ class FrameReceiverService extends ChangeNotifier {
             'reason=$closeReason',
         ].join(', ');
         _handleSocketClosed(
-          closeDetail.isEmpty
-              ? 'Connection closed by server'
-              : 'Connection closed by server ($closeDetail)',
+          closeDetail.isEmpty ? '서버가 연결을 종료했어' : '서버가 연결을 종료했어 ($closeDetail)',
         );
       },
       cancelOnError: false,
@@ -642,7 +640,7 @@ class FrameReceiverService extends ChangeNotifier {
         _updateFpsFromMetadata(decoded);
       }
     } catch (e) {
-      _errorMessage = 'Invalid WebSocket metadata: $e';
+      _errorMessage = 'WebSocket 메타데이터 오류: $e';
       _pendingStreams = null;
       _pendingPayloads.clear();
       _discardPendingFrame = false;
@@ -709,7 +707,7 @@ class FrameReceiverService extends ChangeNotifier {
       ),
     );
     if (streamInfo.payloadIndex < 0) {
-      _errorMessage = 'Unexpected WebSocket payload';
+      _errorMessage = '예상하지 못한 WebSocket 데이터야';
       _notifyListeners();
       return;
     }
@@ -717,7 +715,7 @@ class FrameReceiverService extends ChangeNotifier {
     final expectedPayloadSize = streamInfo.payloadSize;
     if (expectedPayloadSize != null && payload.length != expectedPayloadSize) {
       _errorMessage =
-          'Invalid ${streamInfo.label} payload size: expected $expectedPayloadSize, got ${payload.length}';
+          '${streamInfo.label} 데이터 크기 오류: 예상 $expectedPayloadSize, 수신 ${payload.length}';
       _pendingStreams = null;
       _pendingPayloads.clear();
       _notifyListeners();
@@ -733,7 +731,7 @@ class FrameReceiverService extends ChangeNotifier {
     for (final stream in pendingStreams) {
       final jpegBytes = _pendingPayloads[stream.payloadIndex];
       if (jpegBytes == null) {
-        _errorMessage = 'Missing WebSocket payload: ${stream.label}';
+        _errorMessage = 'WebSocket 데이터 누락: ${stream.label}';
         _pendingStreams = null;
         _pendingPayloads.clear();
         _notifyListeners();
@@ -918,14 +916,14 @@ class FrameReceiverService extends ChangeNotifier {
     final indexes = <int>{};
     for (final rawStream in rawStreams) {
       if (rawStream is! Map<String, dynamic>) {
-        throw const FormatException('Invalid WebSocket stream metadata');
+        throw const FormatException('WebSocket 영상 메타데이터가 올바르지 않아');
       }
       final payloadIndex = rawStream['payload_index'];
       if (payloadIndex is! int || payloadIndex < 0) {
-        throw const FormatException('Invalid WebSocket payload_index');
+        throw const FormatException('WebSocket payload_index가 올바르지 않아');
       }
       if (!indexes.add(payloadIndex)) {
-        throw const FormatException('Duplicated WebSocket payload_index');
+        throw const FormatException('WebSocket payload_index가 중복됐어');
       }
       streams.add(
         _PendingStreamInfo(
@@ -956,7 +954,7 @@ class FrameReceiverService extends ChangeNotifier {
       return;
     }
     _errorMessage =
-        'Incomplete WebSocket frame: expected ${pendingStreams.length} payloads, got ${_pendingPayloads.length}';
+        'WebSocket 프레임 데이터 누락: 예상 ${pendingStreams.length}개, 수신 ${_pendingPayloads.length}개';
     _pendingStreams = null;
     _pendingPayloads.clear();
   }

@@ -85,7 +85,7 @@ void main() {
         );
         receiver.emit(first);
         await tester.pump();
-        expect(find.text('Live'), findsOneWidget);
+        expect(find.text('실시간'), findsOneWidget);
         expect(
           tester
               .widget<RoiEditorCanvas>(find.byType(RoiEditorCanvas))

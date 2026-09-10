@@ -53,8 +53,8 @@ class _CameraCalibrationScreenState extends State<CameraCalibrationScreen> {
           return Column(
             children: [
               _CalibrationToolbar(
-                title: 'Camera Calibration',
-                subtitle: 'RGB intrinsic / A4 checkerboard',
+                title: '카메라 보정',
+                subtitle: 'RGB 내부 파라미터 / A4 체커보드',
                 receiver: receiver,
                 streamUrl: settings.streamUri.toString(),
               ),
@@ -127,11 +127,11 @@ class _CameraCalibrationScreenState extends State<CameraCalibrationScreen> {
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          const _SectionTitle('RGB Intrinsic'),
+          const _SectionTitle('RGB 내부 파라미터'),
           const SizedBox(height: 8),
-          _MetricRow(label: 'Board', value: 'A4 / 9x6 / 20 mm'),
+          _MetricRow(label: '보정판', value: 'A4 / 9x6 / 20 mm'),
           _MetricRow(
-            label: 'Captures',
+            label: '촬영 횟수',
             value: '${calibration?.captureCount ?? 0}',
           ),
           _MetricRow(
@@ -142,11 +142,11 @@ class _CameraCalibrationScreenState extends State<CameraCalibrationScreen> {
           SwitchListTile(
             value: intrinsic?.undistortEnabled ?? false,
             onChanged: _busy || intrinsic == null ? null : _setIntrinsicApplied,
-            title: const Text('Apply Intrinsic'),
+            title: const Text('내부 파라미터 적용'),
             subtitle: Text(
               intrinsic == null
-                  ? 'Not loaded'
-                  : (intrinsic.undistortEnabled ? 'Enabled' : 'Disabled'),
+                  ? '불러오지 않음'
+                  : (intrinsic.undistortEnabled ? '사용' : '사용 안 함'),
             ),
             contentPadding: EdgeInsets.zero,
           ),
@@ -170,25 +170,25 @@ class _CameraCalibrationScreenState extends State<CameraCalibrationScreen> {
           FilledButton.icon(
             onPressed: _busy ? null : _capture,
             icon: const Icon(Icons.add_a_photo_outlined, size: 16),
-            label: const Text('Capture'),
+            label: const Text('촬영'),
           ),
           const SizedBox(height: 8),
           FilledButton.icon(
             onPressed: _busy ? null : _solve,
             icon: const Icon(Icons.save_outlined, size: 16),
-            label: const Text('Solve + Save'),
+            label: const Text('계산 후 저장'),
           ),
           const SizedBox(height: 8),
           OutlinedButton.icon(
             onPressed: _busy ? null : _reset,
             icon: const Icon(Icons.restart_alt, size: 16),
-            label: const Text('Reset Captures'),
+            label: const Text('촬영 데이터 초기화'),
           ),
           const SizedBox(height: 8),
           OutlinedButton.icon(
             onPressed: _busy ? null : _load,
             icon: const Icon(Icons.refresh, size: 16),
-            label: const Text('Reload'),
+            label: const Text('다시 불러오기'),
           ),
           if (_error != null) ...[
             const SizedBox(height: 12),
@@ -302,7 +302,7 @@ class _CalibrationToolbar extends StatelessWidget {
               child: CircularProgressIndicator(strokeWidth: 2),
             ),
             const SizedBox(width: 8),
-            const Text('Connecting', style: TextStyle(fontSize: 12)),
+            const Text('연결 중', style: TextStyle(fontSize: 12)),
           ] else if (receiver.connected) ...[
             const Icon(Icons.circle, size: 8, color: Colors.green),
             const SizedBox(width: 8),
@@ -314,7 +314,7 @@ class _CalibrationToolbar extends StatelessWidget {
             OutlinedButton.icon(
               onPressed: receiver.disconnect,
               icon: const Icon(Icons.power_off, size: 16),
-              label: const Text('Disconnect'),
+              label: const Text('연결 해제'),
             ),
           ] else ...[
             if (receiver.errorMessage != null)
@@ -330,7 +330,7 @@ class _CalibrationToolbar extends StatelessWidget {
             FilledButton.icon(
               onPressed: () => receiver.connect(streamUrl),
               icon: const Icon(Icons.power, size: 16),
-              label: const Text('Connect'),
+              label: const Text('연결'),
             ),
           ],
         ],

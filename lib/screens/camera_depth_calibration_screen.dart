@@ -96,12 +96,12 @@ class _Toolbar extends StatelessWidget {
           const Icon(Icons.threed_rotation, size: 18),
           const SizedBox(width: 10),
           const Text(
-            'Camera Geometry',
+            '카메라 위치',
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
           ),
           const Spacer(),
           IconButton(
-            tooltip: 'Reload',
+            tooltip: '다시 불러오기',
             onPressed: onReload,
             icon: const Icon(Icons.refresh),
           ),
@@ -120,18 +120,18 @@ class _IntrinsicsSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final value = intrinsics;
     return _Section(
-      title: 'Intrinsics',
+      title: '내부 파라미터',
       children: [
-        _Field(label: 'camera_path', value: value?.cameraPath ?? '-'),
+        _Field(label: '카메라 경로', value: value?.cameraPath ?? '-'),
         _Field(
-          label: 'resolution',
+          label: '해상도',
           value: '${value?.width ?? 0} x ${value?.height ?? 0}',
         ),
         _Field(label: 'fx', value: _fixed(value?.fx)),
         _Field(label: 'fy', value: _fixed(value?.fy)),
         _Field(label: 'cx', value: _fixed(value?.cx)),
         _Field(label: 'cy', value: _fixed(value?.cy)),
-        _Field(label: 'distortion', value: value?.distortionModel ?? '-'),
+        _Field(label: '왜곡 모델', value: value?.distortionModel ?? '-'),
       ],
     );
   }
@@ -147,22 +147,19 @@ class _ExtrinsicsSection extends StatelessWidget {
     final value = extrinsics;
     final matrix = value?.robotFromCameraOptical ?? const [];
     return _Section(
-      title: 'Extrinsics',
+      title: '외부 파라미터',
       children: [
-        _Field(label: 'camera_path', value: value?.cameraPath ?? '-'),
-        _Field(label: 'robot_base_path', value: value?.robotBasePath ?? '-'),
+        _Field(label: '카메라 경로', value: value?.cameraPath ?? '-'),
+        _Field(label: '로봇 기준 경로', value: value?.robotBasePath ?? '-'),
         const SizedBox(height: 14),
-        const _SubTitle('Camera position from robot base'),
+        const _SubTitle('로봇 기준 카메라 위치'),
         _CameraPosition(matrix: matrix),
         const SizedBox(height: 14),
-        const _SubTitle('Rotation 3x3'),
+        const _SubTitle('회전 행렬 3×3'),
         _Matrix(matrix: _rotationRows(matrix), labels: const ['x', 'y', 'z']),
         const SizedBox(height: 14),
-        const _SubTitle('Transform 4x4'),
-        _Matrix(
-          matrix: matrix,
-          labels: const ['row 0', 'row 1', 'row 2', 'row 3'],
-        ),
+        const _SubTitle('변환 행렬 4×4'),
+        _Matrix(matrix: matrix, labels: const ['0행', '1행', '2행', '3행']),
       ],
     );
   }
@@ -248,7 +245,7 @@ class _CameraPosition extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (matrix.length < 3 || matrix.any((row) => row.length < 4)) {
-      return const Text('camera position: -');
+      return const Text('카메라 위치: -');
     }
     final position = _CameraPositionValues(
       x: matrix[0][3],
@@ -259,7 +256,7 @@ class _CameraPosition extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SelectableText(
-          '카메라는 로봇 base 기준으로 x=${_meter(position.x)}, '
+          '카메라는 로봇 기준으로 x=${_meter(position.x)}, '
           'y=${_meter(position.y)}, z=${_meter(position.z)} 위치에 있음',
         ),
         const SizedBox(height: 10),
@@ -301,7 +298,7 @@ class _AxisOffset extends StatelessWidget {
             width: 120,
             child: SelectableText(
               '$axis = ${_meter(value)}',
-              style: const TextStyle(fontFamily: 'monospace'),
+              style: const TextStyle(fontFamily: 'NotoSansKR'),
             ),
           ),
           const SizedBox(width: 12),
@@ -330,7 +327,7 @@ class _Matrix extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (matrix.isEmpty) {
-      return const Text('matrix: -');
+      return const Text('행렬: -');
     }
     return Table(
       defaultVerticalAlignment: TableCellVerticalAlignment.middle,
@@ -346,7 +343,7 @@ class _Matrix extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 6),
                 child: Text(
-                  rowIndex < labels.length ? labels[rowIndex] : 'row $rowIndex',
+                  rowIndex < labels.length ? labels[rowIndex] : '$rowIndex행',
                   style: const TextStyle(color: Colors.grey, fontSize: 12),
                 ),
               ),
@@ -359,7 +356,7 @@ class _Matrix extends StatelessWidget {
                   child: SelectableText(
                     value.toStringAsFixed(6),
                     style: const TextStyle(
-                      fontFamily: 'monospace',
+                      fontFamily: 'NotoSansKR',
                       fontSize: 12,
                     ),
                   ),

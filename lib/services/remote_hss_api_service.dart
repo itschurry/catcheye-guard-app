@@ -51,7 +51,7 @@ class RemoteHssApiService {
           ? response.reasonPhrase
           : responseBody;
       throw HttpException(
-        'Request failed (${response.statusCode}) for $uri: $errorBody',
+        '요청 실패 (${response.statusCode}) · $uri: $errorBody',
         uri: uri,
       );
     }
@@ -62,7 +62,7 @@ class RemoteHssApiService {
 
     final decoded = jsonDecode(responseBody);
     if (decoded is! Map<String, dynamic>) {
-      throw const FormatException('JSON object response expected');
+      throw const FormatException('JSON 객체 응답이 필요해');
     }
     return decoded;
   }

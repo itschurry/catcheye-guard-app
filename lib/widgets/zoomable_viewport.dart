@@ -68,15 +68,15 @@ class _ZoomableViewportState extends State<ZoomableViewport> {
                     if (widget.editable)
                       IconButton(
                         tooltip: _moveMode
-                            ? 'Draw mode: drag to edit'
-                            : 'Move mode: drag to pan, pinch to zoom',
+                            ? '편집 모드: 드래그로 편집'
+                            : '이동 모드: 드래그로 이동, 두 손가락으로 확대·축소',
                         isSelected: _moveMode,
                         icon: const Icon(Icons.pan_tool_outlined, size: 18),
                         selectedIcon: const Icon(Icons.pan_tool, size: 18),
                         onPressed: () => setState(() => _moveMode = !_moveMode),
                       ),
                     IconButton(
-                      tooltip: 'Zoom out',
+                      tooltip: '축소',
                       icon: const Icon(Icons.remove, size: 18),
                       onPressed: matrix.getMaxScaleOnAxis() <= 1
                           ? null
@@ -85,14 +85,14 @@ class _ZoomableViewportState extends State<ZoomableViewport> {
                     TextButton(
                       onPressed: () => _transform.value = Matrix4.identity(),
                       child: Tooltip(
-                        message: 'Fit to view',
+                        message: '화면 맞춤',
                         child: Text(
                           '${(matrix.getMaxScaleOnAxis() * 100).round()}%',
                         ),
                       ),
                     ),
                     IconButton(
-                      tooltip: 'Zoom in',
+                      tooltip: '확대',
                       icon: const Icon(Icons.add, size: 18),
                       onPressed: matrix.getMaxScaleOnAxis() >= 16
                           ? null
