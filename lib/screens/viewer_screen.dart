@@ -18,6 +18,7 @@ import '../widgets/live_viewer.dart';
 import '../widgets/point_cloud_viewer.dart';
 import '../widgets/stream_selector.dart';
 import '../widgets/station_capture_actions.dart';
+import '../widgets/station_undistortion_control.dart';
 
 /// Live preview viewer screen — connects to the remote detector RTSP or WebSocket stream.
 
@@ -73,6 +74,7 @@ class _ViewerScreenState extends State<ViewerScreen>
   String? _selectedStationCycleId;
   String? _stationError;
   bool _stationSourceActionInFlight = false;
+  bool _stationUndistortionActionInFlight = false;
   bool _stationPollInFlight = false;
   Timer? _stationPollTimer;
   int _stationSession = 0;
@@ -1742,7 +1744,9 @@ class _ViewerScreenState extends State<ViewerScreen>
                   selected: {_stationViewerLayout},
                   showSelectedIcon: false,
                   onSelectionChanged:
-                      _stationSourceActionInFlight || source == null
+                      _stationSourceActionInFlight ||
+                          _stationUndistortionActionInFlight ||
+                          source == null
                       ? null
                       : (selection) => unawaited(
                           _changeStationViewerLayout(
@@ -1760,42 +1764,76 @@ class _ViewerScreenState extends State<ViewerScreen>
                 )
                   SizedBox(
                     width: 190,
-                    child: DropdownButtonFormField<String>(
-                      key: ValueKey(
-                        'station-camera-${_stationViewerLayout.name}-$slot-${_stationCameraForSlot(slot)}',
-                      ),
-                      initialValue: _stationCameraForSlot(slot),
-                      isExpanded: true,
-                      decoration: InputDecoration(
-                        labelText: 'Camera ${slot + 1}',
-                        isDense: true,
-                        border: const OutlineInputBorder(),
-                      ),
-                      items: [
-                        const DropdownMenuItem(value: '', child: Text('Empty')),
-                        for (final cameraId in cameraIds)
-                          DropdownMenuItem(
-                            value: cameraId,
-                            child: Text(
-                              cameraId,
-                              overflow: TextOverflow.ellipsis,
+                    child: Column(
+                      children: [
+                        DropdownButtonFormField<String>(
+                          key: ValueKey(
+                            'station-camera-${_stationViewerLayout.name}-$slot-${_stationCameraForSlot(slot)}',
+                          ),
+                          initialValue: _stationCameraForSlot(slot),
+                          isExpanded: true,
+                          decoration: InputDecoration(
+                            labelText: 'Camera ${slot + 1}',
+                            isDense: true,
+                            border: const OutlineInputBorder(),
+                          ),
+                          items: [
+                            const DropdownMenuItem(
+                              value: '',
+                              child: Text('Empty'),
+                            ),
+                            for (final cameraId in cameraIds)
+                              DropdownMenuItem(
+                                value: cameraId,
+                                child: Text(
+                                  cameraId,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                          ],
+                          onChanged:
+                              _stationSourceActionInFlight ||
+                                  _stationUndistortionActionInFlight ||
+                                  source == null
+                              ? null
+                              : (cameraId) {
+                                  if (cameraId != null) {
+                                    unawaited(
+                                      _changeStationCameraSlot(
+                                        settings,
+                                        receiver,
+                                        slot,
+                                        cameraId,
+                                      ),
+                                    );
+                                  }
+                                },
+                        ),
+                        if (_stationCameraForSlot(slot).isNotEmpty)
+                          StationUndistortionControl(
+                            key: ValueKey(
+                              'undistortion-$_stationSession-${settings.detectorBaseUrl}-${_stationCameraForSlot(slot)}',
+                            ),
+                            api: _captureApi,
+                            settings: settings,
+                            cameraId: _stationCameraForSlot(slot),
+                            observedEnabled: status
+                                ?.cameras[_stationCameraForSlot(slot)]
+                                ?.undistortionEnabled,
+                            blocked:
+                                !receiver.connected ||
+                                status == null ||
+                                !status.ready ||
+                                status.busy ||
+                                status.pendingCount > 0 ||
+                                _captureActionInFlight ||
+                                _stationSourceActionInFlight ||
+                                _stationUndistortionActionInFlight,
+                            onApplyingChanged: (value) => setState(
+                              () => _stationUndistortionActionInFlight = value,
                             ),
                           ),
                       ],
-                      onChanged: _stationSourceActionInFlight || source == null
-                          ? null
-                          : (cameraId) {
-                              if (cameraId != null) {
-                                unawaited(
-                                  _changeStationCameraSlot(
-                                    settings,
-                                    receiver,
-                                    slot,
-                                    cameraId,
-                                  ),
-                                );
-                              }
-                            },
                     ),
                   ),
                 Text(queueText, style: const TextStyle(fontSize: 12)),
@@ -1829,7 +1867,8 @@ class _ViewerScreenState extends State<ViewerScreen>
           StationCaptureActions(
             status: status,
             connected: receiver.connected,
-            inFlight: _captureActionInFlight,
+            inFlight:
+                _captureActionInFlight || _stationUndistortionActionInFlight,
             onCapture: (target) =>
                 _requestCapture(settings, stationTarget: target),
           ),
@@ -2150,6 +2189,7 @@ class _ViewerScreenState extends State<ViewerScreen>
     FrameReceiverService receiver,
   ) async {
     final session = ++_stationSession;
+    _stationUndistortionActionInFlight = false;
     _stationPollTimer?.cancel();
     final sameDevice = _stationApiBaseUrl == settings.detectorBaseUrl;
     if (!sameDevice) {
@@ -2202,6 +2242,7 @@ class _ViewerScreenState extends State<ViewerScreen>
 
   void _leaveStationMode(FrameReceiverService receiver) {
     _stationSession++;
+    _stationUndistortionActionInFlight = false;
     _stationPollTimer?.cancel();
     receiver.setExpectedCameraIds(null);
     if (!mounted) return;
@@ -2461,6 +2502,7 @@ class _ViewerScreenState extends State<ViewerScreen>
 
   Future<void> _disconnect(FrameReceiverService receiver) async {
     _stationSession++;
+    _stationUndistortionActionInFlight = false;
     _stationPollTimer?.cancel();
     await receiver.disconnect();
     if (mounted) setState(() {});

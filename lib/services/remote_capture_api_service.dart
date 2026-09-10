@@ -53,20 +53,57 @@ class StationCaptureAccepted {
   }
 }
 
+class StationUndistortion {
+  final String cameraId;
+  final bool enabled;
+  final bool calibrationAvailable;
+  final int imageGeneration;
+  final bool persistent;
+
+  const StationUndistortion({
+    required this.cameraId,
+    required this.enabled,
+    required this.calibrationAvailable,
+    required this.imageGeneration,
+    required this.persistent,
+  });
+
+  factory StationUndistortion.fromJson(Map<String, dynamic> json) {
+    final generation = json['image_generation'];
+    if (generation is! int || generation < 0) {
+      throw const FormatException(
+        'image_generation must be a nonnegative integer',
+      );
+    }
+    return StationUndistortion(
+      cameraId: _requiredString(json, 'camera_id'),
+      enabled: _requiredBool(json, 'enabled'),
+      calibrationAvailable: _requiredBool(json, 'calibration_available'),
+      imageGeneration: generation,
+      persistent: _requiredBool(json, 'persistent'),
+    );
+  }
+}
+
 class StationCameraStatus {
   final bool open;
   final int frameSequence;
+  final bool? undistortionEnabled;
   final String lastError;
 
   const StationCameraStatus({
     required this.open,
     required this.frameSequence,
+    this.undistortionEnabled,
     required this.lastError,
   });
 
   factory StationCameraStatus.fromJson(Map<String, dynamic> json) {
     return StationCameraStatus(
       open: _requiredBool(json, 'open'),
+      undistortionEnabled: json.containsKey('undistortion_enabled')
+          ? _requiredBool(json, 'undistortion_enabled')
+          : null,
       frameSequence: _optionalInt(json, 'frame_sequence') ?? 0,
       lastError: _optionalString(json, 'last_error'),
     );
@@ -507,6 +544,42 @@ class RemoteCaptureApiService {
       settings.buildApiUri('capture/results'),
     );
     return StationCaptureResultList.fromJson(json);
+  }
+
+  Future<StationUndistortion> fetchUndistortion(
+    AppSettings settings,
+    String cameraId,
+  ) => _undistortion(settings, cameraId, null);
+
+  Future<StationUndistortion> setUndistortion(
+    AppSettings settings,
+    String cameraId,
+    bool enabled,
+  ) => _undistortion(settings, cameraId, enabled);
+
+  Future<StationUndistortion> _undistortion(
+    AppSettings settings,
+    String cameraId,
+    bool? enabled,
+  ) async {
+    if (cameraId.trim().isEmpty) {
+      throw const FormatException('camera_id must not be empty');
+    }
+    final json = await _requestJson(
+      enabled == null ? 'GET' : 'POST',
+      settings.buildApiUri(
+        'cameras/${Uri.encodeComponent(cameraId)}/undistortion',
+      ),
+      body: enabled == null ? null : {'enabled': enabled},
+    );
+    final result = StationUndistortion.fromJson(json);
+    if (result.cameraId != cameraId ||
+        (enabled != null && result.enabled != enabled)) {
+      throw const FormatException(
+        'undistortion response does not match the requested camera or mode',
+      );
+    }
+    return result;
   }
 
   Future<StationViewerSource> fetchViewerSource(AppSettings settings) async {

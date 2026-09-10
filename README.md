@@ -207,7 +207,7 @@ ID이며 뒤따르는 JPEG binary frame은 `payload_index` 순서로 매칭된�
 갱신하므로 다른 카메라 때문에 같은 JPEG가 재전송돼도 정지 영상을 정상으로
 표시하지 않는다.
 
-미리보기는 raw 영상이며 Capture 결과와 연결하지 않는다. Capture 결과는
+미리보기는 카메라의 보정 ON/OFF 설정이 적용된 영상이며 Capture 결과와 연결하지 않는다. Capture 결과는
 cycle ID로 별도 폴링하여 Viewer 상단 결과 행에 표시한다.
 
 Inspect의 결과 파일은 `outputs/{bolt_stud,nut,all}/YYYY-MM-DD/<cycle_id>/`에 저장돼. 결과 JSON의 `storage_path`는 저장 루트 기준 상대 경로이고, Studio의 조회는 계속 `cycle_id`를 사용해. 기존 archive 파일을 결과 API에서 다시 불러오지는 않아.
@@ -339,3 +339,19 @@ Inspection station은 `runtime_mode: "station"`을 함께 반환한다. HSS 응�
 Viewer에 설정한 WebSocket 스트림을 ROI Editor 배경으로 계속 표시한다. Viewer와 ROI Editor 사이에서는 연결을 유지하며, ROI Editor에 직접 들어가도 자동 연결한다. 카메라 프레임 해상도에 맞춰 ROI 좌표와 화면 비율을 동기화한다. `Stream: Live`가 표시되면 영상 위의 꼭짓점을 드래그해서 편집하고 업로드 버튼으로 장비에 저장한다. 연결 실패는 Stream 상태에 표시하며, 정지 이미지 캡처는 사용하지 않는다. ROI 배경 영상은 `ws://` 또는 `wss://` 연결이 필요하다.
 
 HSS는 `stream_name: camera`, `payload_encoding: jpeg`로 영상을 전송한다. Studio의 Viewer, Monitor, ROI Editor는 이 카메라 영상을 표시하며, ROI 배경도 실시간으로 갱신한다.
+
+### 카메라별 왜곡 보정 토글
+
+Inspection Station Viewer의 각 카메라 선택란 아래에 **왜곡 보정** 스위치가 있어.
+`1×1`, `1×2`, `2×2` 모두 선택한 카메라별로 표시하고, 빈 슬롯에는 표시하지 않아.
+
+- 상태 조회: `GET /api/cameras/<camera_id>/undistortion`
+- 변경: `POST /api/cameras/<camera_id>/undistortion`, 본문 `{"enabled":true}` 또는 `{"enabled":false}`
+- 이 설정은 서버의 해당 카메라 송출·검출·검사 이미지 저장·새 기준 촬영에 함께 적용돼.
+- 검사 진행·대기, 연결 끊김, 준비 안 됨, 요청 처리 중에는 조작을 막아. 보정 파일이 없으면 ON으로 바꿀 수 없어.
+- 서버의 확인 응답을 받은 뒤 스위치를 변경해. 실패·시간 초과 시 오류를 표시하고 다시 조회 버튼으로 실제 상태를 확인해. POST는 자동 재전송하지 않아.
+- 다른 클라이언트의 변경은 기존 Station 상태 폴링의 `cameras.<id>.undistortion_enabled`로 반영해.
+- 설정은 서버 메모리에만 유지되고 서버 재시작 시 YAML 기본값으로 돌아가. Studio 설정에는 저장하지 않아.
+
+위 API를 지원하는 Inspect 서버가 필요해. 구버전 서버의 404도 오류로 표시하며 임의의 보정 상태를 가정하지 않아.
+기존 저장 이미지·기준 이미지·ROI·모델은 자동 변환되지 않아. 보정 모드에 맞는 기준과 ROI를 사용해야 해.
